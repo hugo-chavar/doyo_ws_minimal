@@ -26,7 +26,7 @@ RUN mix do compile, release
 FROM alpine:3.22
 
 # Install runtime dependencies
-RUN apk add --no-cache openssl ncurses-libs libstdc++ bash
+RUN apk add --no-cache openssl ncurses-libs libstdc++ libgcc bash
 
 # Set working directory
 WORKDIR /app
