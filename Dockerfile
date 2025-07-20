@@ -1,50 +1,47 @@
-# Dockerfile
+# --- Stage 1: Build ---
 FROM elixir:1.18-alpine AS builder
 
-# Install build dependencies
+# Install required packages
 RUN apk add --no-cache build-base git
 
 # Set working directory
 WORKDIR /app
 
-# Install hex and rebar
+# Install Hex and Rebar (used for dependencies)
 RUN mix local.hex --force && \
     mix local.rebar --force
 
-# Set build environment to prod
+# Set environment to prod
 ENV MIX_ENV=prod
 
-# Copy mix.exs and mix.lock files
+# Copy mix files and install deps
 COPY mix.exs mix.lock ./
+RUN mix deps.get --only prod
 
-# Fetch dependencies
-RUN mix deps.get
-
-# Copy the rest of the application
+# Copy source code and compile
 COPY . .
-
-# Compile the application
 RUN mix do compile, release
 
-# Create the final image
+# --- Stage 2: Runtime image ---
 FROM alpine:3.22
 
 # Install runtime dependencies
-RUN apk add --no-cache openssl ncurses-libs
+RUN apk add --no-cache openssl ncurses-libs libstdc++ bash
 
 # Set working directory
 WORKDIR /app
 
-# Copy the release from the builder stage
+# Copy release from builder stage
 COPY --from=builder /app/_build/prod/rel/doyo_ws ./
 
-# Expose the WebSocket port
+# Expose port
 EXPOSE 4000
 
-# Set environment variables at runtime
+# Set environment variables
 ENV LANG=C.UTF-8 \
     PHOENIX_SERVE_ENDPOINTS=true \
-    PORT=4000
+    PORT=4000 \
+    MIX_ENV=prod
 
 # Run the application
 CMD ["/app/bin/doyo_ws", "start"]
