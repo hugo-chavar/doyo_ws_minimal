@@ -16,7 +16,9 @@ defmodule DoyoWs.Application do
       # Start a worker by calling: DoyoWs.Worker.start_link(arg)
       # {DoyoWs.Worker, arg},
       # Start to serve requests, typically the last entry
-      DoyoWsWeb.Endpoint
+      DoyoWsWeb.Endpoint,
+      # Start Redix connection
+      {Redix, name: :redix}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
