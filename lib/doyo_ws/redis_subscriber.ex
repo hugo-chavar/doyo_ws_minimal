@@ -8,10 +8,17 @@ defmodule DoyoWs.RedisSubscriber do
 
   @impl true
   def init(_) do
-    # Start a dedicated Redix connection for PubSub
-    {:ok, conn} = Redix.PubSub.start_link(name: :redix_pubsub)
+    redis_host = System.get_env("REDIS_HOST") || "redis"
+    redis_port = String.to_integer(System.get_env("REDIS_PORT") || "6379")
+    Logger.info("Connecting to Redis at #{redis_host}:#{redis_port}")
 
-    # Subscribe in the background
+    {:ok, conn} =
+      Redix.PubSub.start_link(
+        host: redis_host,
+        port: redis_port,
+        name: :redix_pubsub
+      )
+
     send(self(), :subscribe)
 
     {:ok, %{conn: conn}}
