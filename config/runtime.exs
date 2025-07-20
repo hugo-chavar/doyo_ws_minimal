@@ -38,6 +38,8 @@ if config_env() == :prod do
 
   config :doyo_ws, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  config :redix, host: System.get_env("REDIS_HOST") || "localhost"
+
   config :doyo_ws, DoyoWsWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
