@@ -25,7 +25,7 @@ defmodule DoyoWs.RedisSubscriber do
   end
 
   @impl true
-  def handle_info({:redix_pubsub, _conn, :subscribed, %{channel: "orders"}}, state) do
+  def handle_info({:redix_pubsub, _conn, _ref, :subscribed, %{channel: "orders"}}, state) do
     Logger.debug("Successfully subscribed to 'orders'")
     {:noreply, state}
   end
