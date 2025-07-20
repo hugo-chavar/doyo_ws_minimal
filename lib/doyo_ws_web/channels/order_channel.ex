@@ -5,11 +5,7 @@ defmodule DoyoWsWeb.OrderChannel do
   def join("order:" <> order_id, payload, socket) do
     IO.puts("Order: " <> order_id)
     IO.inspect(payload)
-    if authorized?(payload) do
-      {:ok, socket}
-    else
-      {:error, %{reason: "unauthorized"}}
-    end
+    {:ok, %{}, socket}
   end
 
   # Channels can be used in a request/response fashion
@@ -27,8 +23,5 @@ defmodule DoyoWsWeb.OrderChannel do
     {:noreply, socket}
   end
 
-  # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
-  end
+
 end
