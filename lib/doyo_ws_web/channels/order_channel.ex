@@ -2,7 +2,9 @@ defmodule DoyoWsWeb.OrderChannel do
   use DoyoWsWeb, :channel
 
   @impl true
-  def join("order:lobby", payload, socket) do
+  def join("order:" <> order_id, payload, socket) do
+    IO.puts("Order: " <> order_id)
+    IO.inspect(payload)
     if authorized?(payload) do
       {:ok, socket}
     else
