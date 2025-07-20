@@ -31,7 +31,7 @@ defmodule DoyoWs.RedisSubscriber do
   end
 
   @impl true
-  def handle_info({:redix_pubsub, _conn, :message, %{channel: "orders", payload: payload}}, state) do
+  def handle_info({:redix_pubsub, _conn, _ref, :message, %{channel: "orders", payload: payload}}, state) do
     Logger.debug("Received message from Redis: #{inspect(payload)}")
 
     case Jason.decode(payload) do
