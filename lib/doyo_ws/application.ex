@@ -1,6 +1,4 @@
 defmodule DoyoWs.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -11,18 +9,11 @@ defmodule DoyoWs.Application do
       DoyoWsWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:doyo_ws, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: DoyoWs.PubSub},
-      # Start the Finch HTTP client for sending emails
-      {Finch, name: DoyoWs.Finch},
-      # Start a worker by calling: DoyoWs.Worker.start_link(arg)
-      # {DoyoWs.Worker, arg},
-      # Start to serve requests, typically the last entry
       DoyoWsWeb.Endpoint,
-      # Start Redix connection
-      {Redix, name: :redix}
+      {Redix, name: :redix},
+      DoyoWs.RedisSubscriber
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: DoyoWs.Supervisor]
     Supervisor.start_link(children, opts)
   end
