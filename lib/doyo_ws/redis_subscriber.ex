@@ -9,7 +9,7 @@ defmodule DoyoWs.RedisSubscriber do
   @impl true
   def init(_) do
     # Start a dedicated Redix connection for PubSub
-    {:ok, conn} = Redix.start_link(name: :redix_pubsub)
+    {:ok, conn} = Redix.PubSub.start_link(name: :redix_pubsub)
 
     # Subscribe in the background
     send(self(), :subscribe)
