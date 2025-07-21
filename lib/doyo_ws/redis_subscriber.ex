@@ -2,6 +2,8 @@ defmodule DoyoWs.RedisSubscriber do
   use GenServer
   require Logger
 
+  @redis_channels ["orders"] # , "table_details", "department_details", "pos_counter"
+
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
@@ -26,37 +28,30 @@ defmodule DoyoWs.RedisSubscriber do
 
   @impl true
   def handle_info(:subscribe, state) do
-    {:ok, _subscription_ref} = Redix.PubSub.subscribe(state.conn, "orders", self())
-    Logger.info("Subscribed to Redis channel: orders")
+    Enum.each(@redis_channels, fn channel ->
+      {:ok, _ref} = Redix.PubSub.subscribe(state.conn, channel, self())
+      Logger.info("Subscribed to Redis channel: #{channel}")
+    end)
+
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:redix_pubsub, _conn, _ref, :subscribed, %{channel: "orders"}}, state) do
-    Logger.debug("Successfully subscribed to 'orders'")
-    {:noreply, state}
-  end
+  def handle_info({:redix_pubsub, _conn, _ref, :message, %{channel: channel, payload: payload}}, state) do
+    Logger.debug("Received message from Redis [#{channel}]: #{inspect(payload)}")
 
-  @impl true
-  def handle_info({:redix_pubsub, _conn, _ref, :message, %{channel: "orders", payload: payload}}, state) do
-    Logger.debug("Received message from Redis: #{inspect(payload)}")
-
-    case Jason.decode(payload) do
-      {:ok, %{"order_id" => order_id} = data} ->
-        topic = "order:#{order_id}"
-        DoyoWsWeb.Endpoint.broadcast(topic, "update", data)
-        Logger.info("Broadcasted to #{topic}: #{inspect(data)}")
-
-      {:error, reason} ->
-        Logger.error("Failed to parse JSON: #{inspect(reason)} - Payload: #{payload}")
-    end
+    DoyoWs.RedisMessageRouter.route(channel, payload)
 
     {:noreply, state}
   end
 
-  # Optional: catch-all
+  def handle_info({:redix_pubsub, _conn, _ref, :subscribed, %{channel: channel}}, state) do
+    Logger.debug("Subscribed to #{channel}")
+    {:noreply, state}
+  end
+
   def handle_info(msg, state) do
-    Logger.debug("Unhandled message: #{inspect(msg)}")
+    Logger.warning("Unhandled message: #{inspect(msg)}")
     {:noreply, state}
   end
 end
