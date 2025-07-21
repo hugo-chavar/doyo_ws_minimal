@@ -3,7 +3,7 @@ defmodule DoyoWsWeb.OrderChannel do
 
   @impl true
   def join("order:" <> order_id, payload, socket) do
-    IO.puts("Order: " <> order_id)
+    IO.puts("Join to updates. Order: " <> order_id)
     IO.inspect(payload)
     {:ok, %{}, socket}
   end
