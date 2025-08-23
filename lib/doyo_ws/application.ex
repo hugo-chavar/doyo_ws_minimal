@@ -5,12 +5,18 @@ defmodule DoyoWs.Application do
 
   @impl true
   def start(_type, _args) do
+    redis_host = System.get_env("REDIS_HOST") || "redis"
+    redis_port = String.to_integer(System.get_env("REDIS_PORT") || "6379")
+
     children = [
       DoyoWsWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:doyo_ws, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: DoyoWs.PubSub},
       DoyoWsWeb.Endpoint,
-      {Redix, name: :redix},
+      # Command connection
+      {Redix, [host: redis_host, port: redis_port, name: :redix]},
+      # PubSub connection
+      {Redix.PubSub, [host: redis_host, port: redis_port, name: :redix_pubsub]},
       DoyoWs.RedisSubscriber
     ]
 
