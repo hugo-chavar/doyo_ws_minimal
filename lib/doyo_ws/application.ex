@@ -13,16 +13,20 @@ defmodule DoyoWs.Application do
       {DNSCluster, query: Application.get_env(:doyo_ws, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: DoyoWs.PubSub},
       DoyoWsWeb.Endpoint,
-      # Command connection
+      # Command connection (this one supports child_spec/1)
       {Redix, [host: redis_host, port: redis_port, name: :redix]},
-      # PubSub connection
-      {Redix.PubSub, [host: redis_host, port: redis_port, name: :redix_pubsub]},
+      # PubSub connection (manual child spec, since Redix.PubSub lacks child_spec/1)
+      %{
+        id: Redix.PubSub,
+        start: {Redix.PubSub, :start_link, [[host: redis_host, port: redis_port, name: :redix_pubsub]]}
+      },
       DoyoWs.RedisSubscriber
     ]
 
     opts = [strategy: :one_for_one, name: DoyoWs.Supervisor]
     Supervisor.start_link(children, opts)
   end
+
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
