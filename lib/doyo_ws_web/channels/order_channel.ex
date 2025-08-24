@@ -3,27 +3,24 @@ defmodule DoyoWsWeb.OrderChannel do
   require Logger
 
   @impl true
-  def join("order:" <> order_id, _payload, socket) do
-    Logger.info("Join to updates. Order: #{order_id}")
+  def join("order:" <> order_id, _params, socket) do
+    send(self(), {:after_join, order_id})
+    {:ok, socket}
+  end
 
-    # Try to fetch cached "first message" from Redis
-    case Redix.command(:redix, ["GET", "order_#{order_id}"]) do
+  @impl true
+  def handle_info({:after_join, order_id}, socket) do
+    # Fetch cached order from Redis
+    case Redix.command(:redix, ["GET", "order_" <> order_id]) do
       {:ok, nil} ->
-        Logger.debug("No cached message for order: #{order_id}")
+        :ok
 
-      {:ok, cached} ->
-        with {:ok, decoded} <- Jason.decode(cached) do
-          Logger.debug("Sending cached first message for order #{order_id}: #{inspect(decoded)}")
-          push(socket, "first_message", decoded)
-        else
-          _ -> Logger.error("Failed to decode cached message for #{order_id}")
-        end
-
-      {:error, reason} ->
-        Logger.error("Redis GET failed for order #{order_id}: #{inspect(reason)}")
+      {:ok, json} ->
+        decoded = Jason.decode!(json)
+        push(socket, "first_message", decoded)
     end
 
-    {:ok, %{}, socket}
+    {:noreply, socket}
   end
 
   # Channels can be used in a request/response fashion
