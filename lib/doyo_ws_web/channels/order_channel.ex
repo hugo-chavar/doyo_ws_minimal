@@ -17,7 +17,7 @@ defmodule DoyoWsWeb.OrderChannel do
 
       {:ok, json} ->
         decoded = Jason.decode!(json)
-        push(socket, "first_message", decoded)
+        push(socket, "update", decoded)
     end
 
     {:noreply, socket}
