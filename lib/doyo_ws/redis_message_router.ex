@@ -3,10 +3,13 @@ defmodule DoyoWs.RedisMessageRouter do
 
   def route("orders", payload) do
     case Jason.decode(payload) do
-      {:ok, %{"order_id" => order_id} = data} ->
+      {:ok, %{"order_id" => order_id} = data} when is_binary(order_id) ->
         topic = "order:#{order_id}"
         DoyoWsWeb.Endpoint.broadcast(topic, "update", data)
         Logger.info("Broadcasted to #{topic}: #{inspect(data)}")
+
+      {:ok, decoded} ->
+        Logger.warning("Received orders message without order_id: #{inspect(decoded)}")
 
       {:error, reason} ->
         Logger.error("Failed to decode order message: #{inspect(reason)} - #{payload}")
