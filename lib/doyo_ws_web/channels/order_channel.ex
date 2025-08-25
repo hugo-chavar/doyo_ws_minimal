@@ -11,7 +11,7 @@ defmodule DoyoWsWeb.OrderChannel do
   @impl true
   def handle_info({:after_join, order_id}, socket) do
     # Fetch cached order from Redis
-    case Redix.command(:redix, ["GET", "order_" <> order_id]) do
+    case Redix.command(:redix, ["GET", "json_order_" <> order_id]) do
       {:ok, nil} ->
         :ok
 
