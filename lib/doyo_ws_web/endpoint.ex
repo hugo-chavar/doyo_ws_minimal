@@ -18,8 +18,7 @@ defmodule DoyoWsWeb.Endpoint do
   socket "/new_ws", DoyoWsWeb.UserSocket,
     # to remove /websocket see https://chatgpt.com/share/67e1d7d9-49e4-8000-b3f1-0e1f2fadf226 nginx solution
     websocket: [
-      timeout: 600_000, # 10 minutes instead of the default 60 seconds
-      heartbeat_interval: 55_000  # Interval (milliseconds)
+      timeout: 600_000, # 10 minutes
     ],
     longpoll: false
 

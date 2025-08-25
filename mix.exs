@@ -32,8 +32,8 @@ defmodule DoyoWs.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.7.21"},
-      {:phoenix_live_dashboard, "~> 0.8.3"},
+      {:phoenix, "~> 1.8"},
+      {:phoenix_live_dashboard, "~> 0.8.7"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
       {:heroicons,
@@ -51,6 +51,7 @@ defmodule DoyoWs.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:redix, ">= 1.5.2"},
+      {:mox, "~> 1.2"},
       {:bandit, "~> 1.7"}
     ]
   end

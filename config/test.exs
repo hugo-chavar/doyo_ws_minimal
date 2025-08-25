@@ -18,3 +18,6 @@ config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Configures Redis
+config :doyo_ws, :redis_impl, DoyoWs.Redis.RedisMock

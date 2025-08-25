@@ -1,7 +1,17 @@
 defmodule DoyoWsWeb.OrderChannelTest do
   use DoyoWsWeb.ChannelCase
 
+  alias DoyoWs.Redis.RedisMock
+
+  # ------------------------------------------------------------------
+  # Shared setup: valid order join
+  # ------------------------------------------------------------------
   setup do
+    # mock Redis for test env
+    RedisMock
+    |> Mox.stub(:subscribe, fn _ -> {:ok, make_ref()} end)
+    |> Mox.stub(:get, fn _key -> {:ok, nil} end)
+
     {:ok, _, socket} =
       DoyoWsWeb.UserSocket
       |> socket("user_id", %{some: :assign})
@@ -9,6 +19,10 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
     %{socket: socket}
   end
+
+  # ------------------------------------------------------------------
+  # Legacy channel tests
+  # ------------------------------------------------------------------
 
   test "ping replies with status ok", %{socket: socket} do
     ref = push(socket, "ping", %{"hello" => "there"})
@@ -23,5 +37,35 @@ defmodule DoyoWsWeb.OrderChannelTest do
   test "broadcasts are pushed to the client", %{socket: socket} do
     broadcast_from!(socket, "broadcast", %{"some" => "data"})
     assert_push "broadcast", %{"some" => "data"}
+  end
+
+  # ------------------------------------------------------------------
+  # New join validation tests
+  # ------------------------------------------------------------------
+
+  test "join/3 validation accepts a valid ObjectId" do
+    RedisMock
+    |> Mox.expect(:subscribe, fn _ -> {:ok, make_ref()} end)
+    |> Mox.stub(:get, fn _key -> {:ok, nil} end)
+
+    {:ok, _, _socket} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+  end
+
+  test "join/3 validation rejects invalid ObjectIds" do
+    {:error, %{reason: "unauthorized"}} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:ZZZZZZZZZZZZZZZZZZZZZZZZ", %{})
+
+    {:error, %{reason: "unauthorized"}} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:abc123", %{})
+  end
+
+  test "join/3 validation rejects non-order topics" do
+    {:error, %{reason: "unauthorized"}} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "something_else:123", %{})
   end
 end

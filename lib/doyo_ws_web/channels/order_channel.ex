@@ -1,6 +1,7 @@
 defmodule DoyoWsWeb.OrderChannel do
   use DoyoWsWeb, :channel
   require Logger
+  @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
 
   @impl true
   def join("order:" <> order_id, _params, socket) do
@@ -17,14 +18,18 @@ defmodule DoyoWsWeb.OrderChannel do
   @impl true
   def handle_info({:after_join, order_id}, socket) do
     # Fetch cached order from Redis
-    case Redix.command(:redix, ["GET", "json_order_" <> order_id]) do
+    case @redis_client.get("json_order_" <> order_id) do
       {:ok, nil} ->
         :ok
 
       {:ok, json} ->
         decoded = Jason.decode!(json)
         push(socket, "update", decoded)
-    end
+
+      {:error, reason} ->
+        Logger.error("Redis get failed: #{inspect(reason)}")
+        :ok
+      end
 
     {:noreply, socket}
   end

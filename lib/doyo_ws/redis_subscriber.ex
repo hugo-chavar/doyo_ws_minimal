@@ -3,6 +3,7 @@ defmodule DoyoWs.RedisSubscriber do
   require Logger
 
   @redis_channels ["orders"] # , "table_details", "department_details", "pos_counter"
+  @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -17,7 +18,7 @@ defmodule DoyoWs.RedisSubscriber do
   @impl true
   def handle_info(:subscribe, state) do
     Enum.each(@redis_channels, fn channel ->
-      {:ok, _ref} = Redix.PubSub.subscribe(state.conn, channel, self())
+      {:ok, _ref} = @redis_client.subscribe(channel)
       Logger.info("Subscribed to Redis channel: #{channel}")
     end)
 
