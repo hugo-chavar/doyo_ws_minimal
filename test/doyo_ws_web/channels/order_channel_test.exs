@@ -6,10 +6,13 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
   alias DoyoWs.Redis.RedisMock
 
-
+  # ------------------------------------------------------------------
+  # Shared setup: valid order join
+  # ------------------------------------------------------------------
   setup do
     # Default stub for RedisMock
     RedisMock
+    |> stub(:subscribe, fn _channel -> {:ok, make_ref()} end)
     |> stub(:get, fn _key -> {:ok, nil} end)
 
     {:ok, _, socket} =
@@ -29,7 +32,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
     assert_reply ref, :ok, %{"hello" => "there"}
   end
 
-  test "shout broadcasts to order:60c72b1f9b3e6c001c8c0b1a", %{socket: socket} do
+  test "shout broadcasts to order:topic", %{socket: socket} do
     push(socket, "shout", %{"hello" => "all"})
     assert_broadcast "shout", %{"hello" => "all"}
   end
@@ -66,5 +69,37 @@ defmodule DoyoWsWeb.OrderChannelTest do
     {:error, %{reason: "invalid_order_id"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "something_else:123", %{})
+  end
+
+  # ------------------------------------------------------------------
+  # Handle_info tests
+  # ------------------------------------------------------------------
+
+  test "after_join pushes update when Redis has cached JSON", _ do
+    payload = %{"id" => "60c72b1f9b3e6c001c8c0b1a", "status" => "ready"}
+    json_payload = Jason.encode!(payload)
+
+    RedisMock
+    |> expect(:get, fn "json_order_60c72b1f9b3e6c001c8c0b1a" -> {:ok, json_payload} end)
+
+    {:ok, _, _} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+
+    assert_push "update", ^payload
+  end
+
+  test "after_join logs error and does not push when Redis.get fails", _ do
+    RedisMock
+    |> expect(:get, fn "json_order_60c72b1f9b3e6c001c8c0b1a" ->
+      {:error, %Redix.ConnectionError{reason: :closed}}
+    end)
+
+    {:ok, _, _} =
+      socket(DoyoWsWeb.UserSocket, "user_id", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+
+    # Assert that no "update" message was pushed
+    refute_push "update", _any
   end
 end
