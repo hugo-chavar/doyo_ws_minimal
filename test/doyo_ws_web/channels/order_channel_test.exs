@@ -2,18 +2,14 @@ defmodule DoyoWsWeb.OrderChannelTest do
   use DoyoWsWeb.ChannelCase
 
   import Mox
-  alias DoyoWs.Redis.RedisMock
-
-  # Tell ExUnit to verify mocks after each test
   setup :verify_on_exit!
 
-  # ------------------------------------------------------------------
-  # Shared setup: mock Redis + join channel
-  # ------------------------------------------------------------------
+  alias DoyoWs.Redis.RedisMock
+
+
   setup do
-    # Always stub Redis in test env so channel code doesn't hit real Redis
+    # Default stub for RedisMock
     RedisMock
-    |> stub(:subscribe, fn _channel -> {:ok, make_ref()} end)
     |> stub(:get, fn _key -> {:ok, nil} end)
 
     {:ok, _, socket} =
@@ -49,8 +45,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
   test "join/3 validation accepts a valid ObjectId" do
     RedisMock
-    |> stub(:subscribe, fn _ -> {:ok, make_ref()} end)
-    |> stub(:get, fn _ -> {:ok, nil} end)
+    |> expect(:get, fn "json_order_60c72b1f9b3e6c001c8c0b1a" -> {:ok, nil} end)
 
     {:ok, _, _socket} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})

@@ -2,7 +2,9 @@ defmodule DoyoWsWeb.OrderChannel do
   use DoyoWsWeb, :channel
   require Logger
 
-  defp redis_client, do: Application.get_env(:doyo_ws, :redis_impl, DoyoWs.Redis)
+  defp redis_client do
+    Application.fetch_env!(:doyo_ws, :redis_impl)
+  end
 
   @impl true
   def join("order:" <> order_id, _params, socket) do

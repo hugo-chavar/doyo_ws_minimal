@@ -20,4 +20,4 @@ config :logger, level: :warning
 config :phoenix, :plug_init_mode, :runtime
 
 # Configures Redis
-config :doyo_ws, :redis_impl, DoyoWs.Redis.RedisMock
+# config :doyo_ws, :redis_impl, DoyoWs.Redis.RedisMock
