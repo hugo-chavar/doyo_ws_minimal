@@ -1,16 +1,20 @@
 defmodule DoyoWsWeb.OrderChannelTest do
   use DoyoWsWeb.ChannelCase
 
+  import Mox
   alias DoyoWs.Redis.RedisMock
 
+  # Tell ExUnit to verify mocks after each test
+  setup :verify_on_exit!
+
   # ------------------------------------------------------------------
-  # Shared setup: valid order join
+  # Shared setup: mock Redis + join channel
   # ------------------------------------------------------------------
   setup do
-    # mock Redis for test env
+    # Always stub Redis in test env so channel code doesn't hit real Redis
     RedisMock
-    |> Mox.stub(:subscribe, fn _ -> {:ok, make_ref()} end)
-    |> Mox.stub(:get, fn _key -> {:ok, nil} end)
+    |> stub(:subscribe, fn _channel -> {:ok, make_ref()} end)
+    |> stub(:get, fn _key -> {:ok, nil} end)
 
     {:ok, _, socket} =
       DoyoWsWeb.UserSocket
@@ -45,8 +49,8 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
   test "join/3 validation accepts a valid ObjectId" do
     RedisMock
-    |> Mox.expect(:subscribe, fn _ -> {:ok, make_ref()} end)
-    |> Mox.stub(:get, fn _key -> {:ok, nil} end)
+    |> stub(:subscribe, fn _ -> {:ok, make_ref()} end)
+    |> stub(:get, fn _ -> {:ok, nil} end)
 
     {:ok, _, _socket} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
@@ -54,17 +58,17 @@ defmodule DoyoWsWeb.OrderChannelTest do
   end
 
   test "join/3 validation rejects invalid ObjectIds" do
-    {:error, %{reason: "unauthorized"}} =
+    {:error, %{reason: "invalid_order_id"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:ZZZZZZZZZZZZZZZZZZZZZZZZ", %{})
 
-    {:error, %{reason: "unauthorized"}} =
+    {:error, %{reason: "invalid_order_id"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:abc123", %{})
   end
 
   test "join/3 validation rejects non-order topics" do
-    {:error, %{reason: "unauthorized"}} =
+    {:error, %{reason: "invalid_order_id"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "something_else:123", %{})
   end

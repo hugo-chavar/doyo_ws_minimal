@@ -1,7 +1,8 @@
 defmodule DoyoWsWeb.OrderChannel do
   use DoyoWsWeb, :channel
   require Logger
-  @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
+
+  defp redis_client, do: Application.get_env(:doyo_ws, :redis_impl, DoyoWs.Redis)
 
   @impl true
   def join("order:" <> order_id, _params, socket) do
@@ -16,9 +17,14 @@ defmodule DoyoWsWeb.OrderChannel do
   end
 
   @impl true
+  def join(_topic, _params, _socket) do
+    {:error, %{reason: "invalid_order_id"}}
+  end
+
+  @impl true
   def handle_info({:after_join, order_id}, socket) do
     # Fetch cached order from Redis
-    case @redis_client.get("json_order_" <> order_id) do
+    case redis_client().get("json_order_" <> order_id) do
       {:ok, nil} ->
         :ok
 
@@ -55,5 +61,7 @@ defmodule DoyoWsWeb.OrderChannel do
   defp valid_object_id?(id) when is_binary(id) do
     String.length(id) == 24 and String.match?(id, ~r/\A[0-9a-fA-F]{24}\z/)
   end
+
+
 
 end
