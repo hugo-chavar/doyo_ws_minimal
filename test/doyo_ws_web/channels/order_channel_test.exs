@@ -2,6 +2,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
   use DoyoWsWeb.ChannelCase
 
   import Mox
+  import ExUnit.CaptureLog
   setup :verify_on_exit!
 
   alias DoyoWs.Redis.RedisMock
@@ -82,7 +83,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
     RedisMock
     |> expect(:get, fn "json_order_60c72b1f9b3e6c001c8c0b1a" -> {:ok, json_payload} end)
 
-    {:ok, _, _} =
+    {:ok, _, _socket} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
 
@@ -95,11 +96,16 @@ defmodule DoyoWsWeb.OrderChannelTest do
       {:error, %Redix.ConnectionError{reason: :closed}}
     end)
 
-    {:ok, _, _} =
-      socket(DoyoWsWeb.UserSocket, "user_id", %{})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+    log =
+      capture_log(fn ->
+        {:ok, _, _socket} =
+          socket(DoyoWsWeb.UserSocket, "user_id", %{})
+          |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
 
-    # Assert that no "update" message was pushed
-    refute_push "update", _any
+        refute_push "update", _any
+      end)
+
+    assert log =~ "Redis get failed"
+    assert log =~ "closed"
   end
 end
