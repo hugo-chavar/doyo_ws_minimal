@@ -4,8 +4,14 @@ defmodule DoyoWsWeb.OrderChannel do
 
   @impl true
   def join("order:" <> order_id, _params, socket) do
-    send(self(), {:after_join, order_id})
-    {:ok, socket}
+    if valid_object_id?(order_id) do
+      Logger.info("JOINED order:#{order_id}")
+      send(self(), {:after_join, order_id})
+      {:ok, socket}
+    else
+      Logger.warning("Rejected invalid order_id: #{order_id}")
+      {:error, %{reason: "invalid_order_id"}}
+    end
   end
 
   @impl true
@@ -38,5 +44,11 @@ defmodule DoyoWsWeb.OrderChannel do
     {:noreply, socket}
   end
 
+  # -----------------
+  # Validation helper
+  # -----------------
+  defp valid_object_id?(id) when is_binary(id) do
+    String.length(id) == 24 and String.match?(id, ~r/\A[0-9a-fA-F]{24}\z/)
+  end
 
 end

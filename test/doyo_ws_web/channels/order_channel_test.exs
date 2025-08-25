@@ -5,7 +5,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
     {:ok, _, socket} =
       DoyoWsWeb.UserSocket
       |> socket("user_id", %{some: :assign})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:lobby")
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a")
 
     %{socket: socket}
   end
@@ -15,7 +15,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
     assert_reply ref, :ok, %{"hello" => "there"}
   end
 
-  test "shout broadcasts to order:lobby", %{socket: socket} do
+  test "shout broadcasts to order:60c72b1f9b3e6c001c8c0b1a", %{socket: socket} do
     push(socket, "shout", %{"hello" => "all"})
     assert_broadcast "shout", %{"hello" => "all"}
   end
