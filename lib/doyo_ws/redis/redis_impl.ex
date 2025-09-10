@@ -8,4 +8,8 @@ defmodule DoyoWs.Redis.RedisImpl do
   def get(key) do
     Redix.command(:redix, ["GET", key])
   end
+
+  def hvals(key) do
+    Redix.command(:redix, ["HVALS", key])
+  end
 end
