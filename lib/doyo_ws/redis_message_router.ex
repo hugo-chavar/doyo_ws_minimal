@@ -26,14 +26,19 @@ defmodule DoyoWs.RedisMessageRouter do
     Logger.info("Stub: Received department_details payload #{payload}")
   end
 
-  def route("counter_pos", %{"rid" => restaurant_id}) do
-    # Add logic for pos_counter later
-    Logger.info("Stub: Received pos_counter for restaurant #{restaurant_id}")
-  end
+  def route("counter_" <> type, payload) do
+    {:ok, %{"rid" => restaurant_id}} = Jason.decode(payload)
+    Logger.info("Stub: Received #{type}_counter for restaurant #{restaurant_id}")
+    case DoyoWs.OrderItemCounter.get_counter(restaurant_id, type) do
+      {:ok, count} ->
+        topic = "counter:#{type}:#{restaurant_id}"
+        DoyoWsWeb.Endpoint.broadcast(topic, "update", count)
+        Logger.info("Broadcasted to #{topic}: #{count}")
+      counter_response ->
+        Logger.info("Problem to get counter: #{inspect(counter_response)}")
 
-  def route("counter_kiosk", %{"rid" => restaurant_id}) do
-    # Add logic for kiosk_counter later
-    Logger.info("Stub: Received kiosk_counter for restaurant #{restaurant_id}")
+    end
+
   end
 
   def route(channel, payload) do

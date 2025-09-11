@@ -9,6 +9,7 @@ defmodule DoyoWsWeb.UserSocket do
   ## Channels
 
   channel "order:*", DoyoWsWeb.OrderChannel
+  channel "counter:*", DoyoWsWeb.CounterChannel
   # channel "table_details:*", DoyoWsWeb.TableChannel
   # channel "department_details:*", DoyoWsWeb.DeparmentChannel
 
