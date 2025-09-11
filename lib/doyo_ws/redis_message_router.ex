@@ -26,9 +26,14 @@ defmodule DoyoWs.RedisMessageRouter do
     Logger.info("Stub: Received department_details payload #{payload}")
   end
 
-  def route("pos_counter", payload) do
+  def route("counter_pos", %{"rid" => restaurant_id}) do
     # Add logic for pos_counter later
-    Logger.info("Stub: Received pos_counter payload #{payload}")
+    Logger.info("Stub: Received pos_counter for restaurant #{restaurant_id}")
+  end
+
+  def route("counter_kiosk", %{"rid" => restaurant_id}) do
+    # Add logic for kiosk_counter later
+    Logger.info("Stub: Received kiosk_counter for restaurant #{restaurant_id}")
   end
 
   def route(channel, payload) do
