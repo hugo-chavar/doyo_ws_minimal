@@ -2,7 +2,7 @@ defmodule DoyoWs.RedisSubscriber do
   use GenServer
   require Logger
 
-  @redis_channels ["orders"] # , "table_details", "department_details", "pos_counter"
+  @redis_channels ["orders", "counter_pos", "counter_kiosk"] # , "table_details", "department_details"
   @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
 
   def start_link(_opts) do
