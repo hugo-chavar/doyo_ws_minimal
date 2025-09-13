@@ -18,7 +18,7 @@ defmodule DoyoWs.OrderItemCounter do
               total_count
           end
         end)
-        {:ok, count}
+        {:ok, %{"count" => count}}
       {:error, reason} ->
         {:error, reason}
     end
