@@ -8,7 +8,7 @@ defmodule DoyoWs.OrderItemCounter do
       {:ok, order_list} ->
         count = Enum.reduce(order_list, 0, fn order_str, total_count ->
           case Jason.decode(order_str) do
-            {:ok, %{"id" => _id, "c" => item_count, "t" => t}} ->
+            {:ok, %{"c" => item_count, "t" => t}} ->
               if String.downcase(t) == String.downcase(counter_type) do
                 total_count + item_count
               else
