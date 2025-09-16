@@ -17,4 +17,9 @@ defmodule DoyoWs.OrderService do
     get_by_restaurant(restaurant_id)
     |> Enum.filter(fn order -> order["table"]["id"] == table_id end)
   end
+
+  def get_by_orders_id(restaurant_id, order_ids) do
+    get_by_restaurant(restaurant_id)
+    |> Enum.filter(fn order -> order["_id"] in order_ids end)
+  end
 end
