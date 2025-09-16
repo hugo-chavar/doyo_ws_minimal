@@ -1,13 +1,12 @@
 defmodule DoyoWs.OrderItemCounter do
-  @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
 
   def get_counter(restaurant_id, counter_type) do
 
-    case @redis_client.hvals("orders_#{restaurant_id}") do
+    case DoyoWs.OrderService.get_by_restaurant(restaurant_id) do
 
-      {:ok, order_list} ->
-        count = Enum.reduce(order_list, 0, fn order_str, total_count ->
-          case Jason.decode(order_str) do
+      {:ok, %{"orders" => order_list}} ->
+        count = Enum.reduce(order_list, 0, fn order, total_count ->
+          case order do
             {:ok, %{"t" => t, "active" => true, "completed" => false, "items" => items}} ->
               if String.downcase(t) == String.downcase(counter_type) do
                 item_count = Enum.count(items, fn item -> item["completed"] == false end)
