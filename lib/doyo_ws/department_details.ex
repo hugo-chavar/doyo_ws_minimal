@@ -97,7 +97,7 @@ defmodule DoyoWs.DepartmentDetails do
     table_data_key = build_table_key(table_order, menu)
     username = if deleted_items["user"], do: deleted_items["user"]["username"], else: nil
 
-    items_by_dept = get_deleted_items_by_department(orders, deleted_items)
+    items_by_dept = get_items_by_department(orders, deleted_items)
 
     Enum.each(items_by_dept, fn {dept_id, items} ->
       response_data = %{
@@ -147,7 +147,7 @@ defmodule DoyoWs.DepartmentDetails do
   defp process_item_sent_back(orders, table_order, menu, sent_back_items, restaurant_id) do
     table_data_key = build_table_key(table_order, menu)
 
-    items_by_dept = get_sent_back_items_by_department(orders, sent_back_items)
+    items_by_dept = get_items_by_department(orders, sent_back_items)
     user_order_action_status = if items_by_dept != %{}, do: hd(hd(Map.values(items_by_dept)))["user_order_action_status"], else: nil
     user = if user_order_action_status, do: get_in(user_order_action_status, ["current", "user"]), else: nil
     username = if user, do: user["username"], else: nil
@@ -203,10 +203,12 @@ defmodule DoyoWs.DepartmentDetails do
     "#{table_order["name"]} #{menu["title"]}"
   end
 
+  defp get_item_department_id(item) do
+    get_in(item, ["product", "category", "department", "id"])
+  end
+
   defp group_items_by_department(items) do
-    Enum.group_by(items, fn item ->
-      get_in(item, ["product", "category", "department", "id"])
-    end)
+    Enum.group_by(items, &get_item_department_id/1)
   end
 
   defp enhance_order_data(order) do
@@ -356,33 +358,14 @@ defmodule DoyoWs.DepartmentDetails do
     }
   end
 
-  defp get_deleted_items_by_department(orders, deleted_items) do
-    Enum.reduce(deleted_items["order_items"], %{}, fn item, acc ->
+  defp get_items_by_department(orders, items) do
+    Enum.reduce(items["order_items"], %{}, fn item, acc ->
       order = Enum.find(orders, &(&1["_id"] == item["order_id"]))
       if order do
         Enum.reduce(item["items"], acc, fn item_id, inner_acc ->
           order_item = Enum.find(order["items"], &(&1["_id"] == item_id))
           if order_item do
-            dept_id = get_in(order_item, ["product", "category", "department", "id"])
-            Map.update(inner_acc, dept_id, [order_item], &[order_item | &1])
-          else
-            inner_acc
-          end
-        end)
-      else
-        acc
-      end
-    end)
-  end
-
-  defp get_sent_back_items_by_department(orders, sent_back_items) do
-    Enum.reduce(sent_back_items["order_items"], %{}, fn item, acc ->
-      order = Enum.find(orders, &(&1["_id"] == item["order_id"]))
-      if order do
-        Enum.reduce(item["items"], acc, fn item_id, inner_acc ->
-          order_item = Enum.find(order["items"], &(&1["_id"] == item_id))
-          if order_item do
-            dept_id = get_in(order_item, ["product", "category", "department", "id"])
+            dept_id = get_item_department_id(order_item)
             Map.update(inner_acc, dept_id, [order_item], &[order_item | &1])
           else
             inner_acc
