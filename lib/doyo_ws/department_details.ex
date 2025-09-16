@@ -59,7 +59,8 @@ defmodule DoyoWs.DepartmentDetails do
       |> Enum.filter(fn item -> not item["completed"] end)
       |> group_items_by_department
 
-    Enum.map(items_by_dept, fn {dept_id, items} ->
+    # Return payload grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, _items}, acc ->
       response_data = %{
         "tables" => [
           %{
@@ -70,10 +71,8 @@ defmodule DoyoWs.DepartmentDetails do
           }
         ]
       }
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   defp process_item_action(table_order, menu, order_items, action, restaurant_id) do
@@ -85,12 +84,11 @@ defmodule DoyoWs.DepartmentDetails do
 
     items_by_dept = group_items_by_department(order_items)
 
-    Enum.each(items_by_dept, fn {dept_id, items} ->
+    # Build response data grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
       response_data = build_action_response(action, table_data_key, table_order, username, time, items)
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   defp process_item_delete(orders, table_order, menu, deleted_items, restaurant_id) do
@@ -99,7 +97,8 @@ defmodule DoyoWs.DepartmentDetails do
 
     items_by_dept = get_items_by_department(orders, deleted_items)
 
-    Enum.each(items_by_dept, fn {dept_id, items} ->
+    # Return payload grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
       response_data = %{
         "tables" => [
           %{
@@ -114,10 +113,8 @@ defmodule DoyoWs.DepartmentDetails do
           }
         ]
       }
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   defp process_item_edit(table_order, menu, order_items, restaurant_id) do
@@ -129,7 +126,8 @@ defmodule DoyoWs.DepartmentDetails do
 
     items_by_dept = group_items_by_department(order_items)
 
-    Enum.each(items_by_dept, fn {dept_id, items} ->
+    # Return payload grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
       {pending_items, called_items} = categorize_edited_items(items)
 
       response_data = if pending_items != [] do
@@ -138,10 +136,8 @@ defmodule DoyoWs.DepartmentDetails do
         build_called_response(table_data_key, table_order, username, time, called_items)
       end
 
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   defp process_item_sent_back(orders, table_order, menu, sent_back_items, restaurant_id) do
@@ -153,7 +149,8 @@ defmodule DoyoWs.DepartmentDetails do
     username = if user, do: user["username"], else: nil
     time = if user_order_action_status, do: user_order_action_status["current"]["timestamp"], else: nil
 
-    Enum.each(items_by_dept, fn {dept_id, items} ->
+    # Return payload grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
       response_data = %{
         "tables" => [
           %{
@@ -169,10 +166,8 @@ defmodule DoyoWs.DepartmentDetails do
           }
         ]
       }
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   defp process_new_order(order, restaurant_id) do
@@ -181,7 +176,8 @@ defmodule DoyoWs.DepartmentDetails do
     enhanced_order = enhance_order_data(order)
     items_by_dept = group_items_by_department(enhanced_order["items"])
 
-    Enum.each(items_by_dept, fn {dept_id, items} ->
+    # Return payload grouped by department ID
+    Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
       response_data = %{
         "tables" => [
           %{
@@ -192,10 +188,8 @@ defmodule DoyoWs.DepartmentDetails do
           }
         ]
       }
-      send_websocket_message(response_data, restaurant_id, dept_id)
+      Map.put(acc, dept_id, %{restaurant_id: restaurant_id, payload: response_data})
     end)
-
-    :ok
   end
 
   # Helper functions
@@ -375,12 +369,6 @@ defmodule DoyoWs.DepartmentDetails do
         acc
       end
     end)
-  end
-
-  defp send_websocket_message(response_data, restaurant_id, department_id) do
-    # Implementation depends on your websocket setup
-    # Example: Phoenix.PubSub.broadcast(...)
-    :ok
   end
 
   # Assume these functions are implemented in other modules
