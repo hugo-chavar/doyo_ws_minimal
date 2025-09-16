@@ -4,7 +4,7 @@ defmodule DoyoWs.OrderItemCounter do
 
     case DoyoWs.OrderService.get_by_restaurant(restaurant_id) do
 
-      {:ok, %{"orders" => order_list}} ->
+      {:ok, order_list} ->
         count = Enum.reduce(order_list, 0, fn order, total_count ->
           case order do
             {:ok, %{"t" => t, "active" => true, "completed" => false, "items" => items}} ->

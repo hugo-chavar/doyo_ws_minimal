@@ -7,10 +7,15 @@ defmodule DoyoWs.OrderService do
 
       {:ok, order_list} ->
         restaurant_orders = Enum.map(order_list, &Jason.decode/1)
-        {:ok, %{"orders" => restaurant_orders}}
+        {:ok, restaurant_orders}
       {:error, reason} ->
         {:error, reason}
     end
 
+  end
+
+  def get_by_table(restaurant_id, table_id) do
+    get_by_restaurant(restaurant_id)
+    |> Enum.filter(fn order -> order["table"]["id"] == table_id end)
   end
 end
