@@ -1,24 +1,17 @@
 defmodule DoyoWs.DepartmentDetails do
   require Logger
   @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
+  alias DoyoWs.OrderService
 
   # Public API for different update scenarios
   def get_full_department_details(restaurant_id, department_id) do
-    case @redis_client.hvals("orders_#{restaurant_id}") do
-      {:ok, order_list} ->
-        process_all_orders(order_list, department_id)
-      {:error, reason} ->
-        {:error, reason}
-    end
+    OrderService.get_by_restaurant(restaurant_id)
+    |> process_all_orders(department_id)
   end
 
   def handle_guests_update(restaurant_id, table_order, menu, table_id) do
-    case fetch_table_orders(restaurant_id, table_id) do
-      {:ok, orders} ->
-        process_guests_update(orders, table_order, menu, restaurant_id, table_id)
-      {:error, reason} ->
-        {:error, reason}
-    end
+    OrderService.get_by_table(restaurant_id, table_id)
+    |> process_guests_update(table_order, menu, restaurant_id, table_id)
   end
 
   def handle_item_action(restaurant_id, table_order, menu, order_items, action) do
@@ -26,12 +19,8 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   def handle_item_delete(restaurant_id, table_order, menu, deleted_items) do
-    case fetch_orders_by_ids(restaurant_id, Enum.map(deleted_items, & &1["order_id"])) do
-      {:ok, orders} ->
-        process_item_delete(orders, table_order, menu, deleted_items, restaurant_id)
-      {:error, reason} ->
-        {:error, reason}
-    end
+    OrderService.get_by_orders_id(restaurant_id, Enum.map(deleted_items, & &1["order_id"]))
+    |> process_item_delete(table_order, menu, deleted_items, restaurant_id)
   end
 
   def handle_item_edit(restaurant_id, table_order, menu, order_items) do
@@ -39,12 +28,8 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   def handle_item_sent_back(restaurant_id, table_order, menu, sent_back_items) do
-    case fetch_orders_by_ids(restaurant_id, Enum.map(sent_back_items, & &1["order_id"])) do
-      {:ok, orders} ->
-        process_item_sent_back(orders, table_order, menu, sent_back_items, restaurant_id)
-      {:error, reason} ->
-        {:error, reason}
-    end
+    OrderService.get_by_orders_id(restaurant_id, Enum.map(sent_back_items, & &1["order_id"]))
+    |> process_item_sent_back(table_order, menu, sent_back_items, restaurant_id)
   end
 
   def handle_new_order(restaurant_id, order) do
@@ -54,8 +39,8 @@ defmodule DoyoWs.DepartmentDetails do
   # Private implementation
   defp process_all_orders(order_list, department_id) do
     {table_data, pending_items, called_items, ready_items, delivered_items, counts, table_keys} =
-      Enum.reduce(order_list, initial_state(), fn order_str, acc ->
-        case Jason.decode(order_str) do
+      Enum.reduce(order_list, initial_state(), fn order, acc ->
+        case order do
           {:ok, order} -> process_order(order, department_id, acc)
           {:error, reason} -> log_error("Failed to decode order", reason, acc)
         end
@@ -72,9 +57,7 @@ defmodule DoyoWs.DepartmentDetails do
       orders
       |> Enum.flat_map(& &1["items"])
       |> Enum.filter(fn item -> not item["completed"] end)
-      |> Enum.group_by(fn item ->
-        get_in(item, ["product", "category", "department", "id"])
-      end)
+      |> group_items_by_department
 
     Enum.map(items_by_dept, fn {dept_id, items} ->
       response_data = %{
@@ -418,8 +401,6 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   # Assume these functions are implemented in other modules
-  defp fetch_table_orders(_restaurant_id, _table_id), do: {:ok, []}
-  defp fetch_orders_by_ids(_restaurant_id, _order_ids), do: {:ok, []}
   defp initial_state(), do: {%{}, %{}, %{}, %{}, %{}, %{pending: 0, called: 0, delivered: 0, deleted: 0}, MapSet.new()}
   defp log_error(_message, _reason, acc), do: acc
   defp build_final_result(table_data, pending_items, called_items, ready_items, delivered_items, counts, table_keys) do
