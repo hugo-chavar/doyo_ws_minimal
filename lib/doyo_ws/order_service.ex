@@ -6,8 +6,7 @@ defmodule DoyoWs.OrderService do
     case @redis_client.hvals("orders_#{restaurant_id}") do
 
       {:ok, order_list} ->
-        restaurant_orders = Enum.map(order_list, &Jason.decode/1)
-        {:ok, restaurant_orders}
+        Enum.map(order_list, &Jason.decode/1)
       {:error, reason} ->
         {:error, reason}
     end
