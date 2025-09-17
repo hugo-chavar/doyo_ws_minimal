@@ -1,5 +1,6 @@
 defmodule DoyoWs.OrderService do
   @redis_client Application.compile_env!(:doyo_ws, :redis_impl)
+  require Logger
 
   def get_by_restaurant(restaurant_id) do
 
@@ -8,7 +9,7 @@ defmodule DoyoWs.OrderService do
       {:ok, order_list} ->
         Enum.map(order_list, &Jason.decode/1)
       {:error, reason} ->
-        {:error, reason}
+        Logger.error("Error get orders by restaurant id #{restaurant_id}. Reason: #{reason}")
     end
 
   end
