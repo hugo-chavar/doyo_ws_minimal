@@ -3,15 +3,19 @@ defmodule DoyoWs.OrderService do
   require Logger
 
   def get_by_restaurant(restaurant_id) do
-
     case @redis_client.hvals("orders_#{restaurant_id}") do
-
       {:ok, order_list} ->
-        Enum.map(order_list, &Jason.decode/1)
+        order_list
+        |> Enum.map(&Jason.decode/1)
+        |> Enum.filter(fn
+          {:ok, _order} -> true
+          {:error, _} -> false
+        end)
+        |> Enum.map(fn {:ok, order} -> order end)
+
       {:error, reason} ->
         Logger.error("Error get orders by restaurant id #{restaurant_id}. Reason: #{reason}")
     end
-
   end
 
   def get_by_table(restaurant_id, table_id) do
