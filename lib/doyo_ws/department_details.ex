@@ -557,13 +557,16 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp update_user_items(items_map, table_key, username, item) do
-    update_in(items_map, [table_key, username], fn user_data ->
-      if user_data do
-        update_in(user_data, ["items"], fn existing -> existing ++ [item] end)
-      else
-        %{"username" => username, "items" => [item]}
-      end
+    # Get or initialize the table entry
+    table_data = Map.get(items_map, table_key, %{})
+
+    # Update the user entry within the table
+    updated_table_data = Map.update(table_data, username, %{"username" => username, "items" => [item]}, fn user_data ->
+      update_in(user_data, ["items"], &(&1 ++ [item]))
     end)
+
+    # Put the updated table data back into the main map
+    Map.put(items_map, table_key, updated_table_data)
   end
 
   defp update_count(counts, key, increment) do
