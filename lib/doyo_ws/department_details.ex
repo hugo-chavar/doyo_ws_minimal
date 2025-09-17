@@ -573,9 +573,10 @@ defmodule DoyoWs.DepartmentDetails do
     Map.update(counts, key, increment, &(&1 + increment))
   end
 
-  defp get_guests(_restaurant_id, _table_id) do
-    # Assuming this function is implemented in another module
-    # DoyoWs.TableReservationService.get_by_table(restaurant_id, table_id) || 0
-    0
+  defp get_guests(restaurant_id, table_id) do
+    case DoyoWs.TableReservationService.get_by_table(restaurant_id, table_id) do
+      [] -> 0
+      [hd | _tl] -> hd["guests"]
+    end
   end
 end
