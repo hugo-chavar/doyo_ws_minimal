@@ -333,7 +333,6 @@ defmodule DoyoWs.DepartmentDetails do
     end)
   end
 
-  # Assume these functions are implemented in other modules
   defp initial_state(), do: {%{}, %{}, %{}, %{}, %{}, %{pending: 0, called: 0, delivered: 0, deleted: 0}, MapSet.new()}
 
   defp build_final_result(table_data, pending_items, called_items, ready_items, delivered_items, counts, table_keys) do
@@ -362,24 +361,9 @@ defmodule DoyoWs.DepartmentDetails do
 
   defp process_order(order, department_id, {table_data, pending_items, called_items, ready_items, delivered_items, counts, table_keys}) do
     table_data_key = "#{order["table_order"]["name"]} #{order["menu"]["title"]}"
-    order_id = order["_id"]
-    order_counter = order["order_counter"]
-    order_type = order["order_type"]
-    order_estimated_preparation_time = order["estimated_preparation_time"] || 0
 
-    {is_delivery, is_takeaway} = {order_type == "MenuDelivery", order_type == "MenuTakeAway"}
-
-    {delivery_status, assigned_driver_id, estimated_delivery_time, delivery_details} =
-      if is_delivery or is_takeaway do
-        {
-          order["delivery_status"],
-          if(is_delivery, do: order["assigned_driver_id"], else: nil),
-          if(is_delivery, do: order["estimated_delivery_time"], else: nil),
-          if(is_delivery, do: order["delivery"], else: nil)
-        }
-      else
-        {nil, nil, nil, nil}
-      end
+    # Enhance the order data first
+    enhanced_order = enhance_order_data(order)
 
     # Initialize table data if not exists
     table_data =
@@ -410,10 +394,8 @@ defmodule DoyoWs.DepartmentDetails do
 
     # Process items and track if any belong to the target department
     {has_dept_items, new_pending, new_called, new_ready, new_delivered, new_counts} =
-      Enum.reduce(order["items"], {false, pending_items, called_items, ready_items, delivered_items, counts}, fn item, {has_items, pend, call, ready, deliv, cnt} ->
-        process_item(item, order_id, order_counter, order_type, order_estimated_preparation_time,
-                    delivery_status, assigned_driver_id, estimated_delivery_time, delivery_details,
-                    department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt})
+      Enum.reduce(enhanced_order["items"], {false, pending_items, called_items, ready_items, delivered_items, counts}, fn item, {has_items, pend, call, ready, deliv, cnt} ->
+        process_item(item, department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt})
       end)
 
     # Update table keys if this order has department items
@@ -433,89 +415,64 @@ defmodule DoyoWs.DepartmentDetails do
     is_takeaway = order_type == "MenuTakeAway"
 
     enhanced_items = Enum.map(order["items"], fn item ->
-      item
-      |> Map.put("order_id", order["_id"])
-      |> Map.put("order_counter", order["order_counter"])
-      |> Map.put("order_type", order_type)
-      |> Map.put("estimated_preparation_time", order["estimated_preparation_time"] || 0)
-      |> then(fn item ->
-        if is_delivery or is_takeaway do
-          item
-          |> Map.put("delivery_status", order["delivery_status"])
-          |> then(fn item ->
-            if is_delivery do
-              item
-              |> Map.put("assigned_driver_id", order["assigned_driver_id"])
-              |> Map.put("estimated_delivery_time", order["estimated_delivery_time"])
-              |> Map.put("delivery", order["delivery"])
-            else
-              item
-            end
-          end)
-        else
-          item
-        end
-      end)
+      enhance_item(item, order, is_delivery, is_takeaway)
     end)
 
     Map.put(order, "items", enhanced_items)
   end
 
-  defp process_item(item, order_id, order_counter, order_type, estimated_preparation_time,
-                  delivery_status, assigned_driver_id, estimated_delivery_time, delivery_details,
-                  department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt}) do
-    # Enhance item with order information (from Python item enhancement)
-    enhanced_item = item
-      |> Map.put("order_id", order_id)
-      |> Map.put("order_counter", order_counter)
-      |> Map.put("order_type", order_type)
-      |> Map.put("estimated_preparation_time", estimated_preparation_time)
-      |> then(fn item ->
-        if delivery_status do
-          item
-          |> Map.put("delivery_status", delivery_status)
-          |> then(fn item ->
-            if assigned_driver_id do
-              item
-              |> Map.put("assigned_driver_id", assigned_driver_id)
-              |> Map.put("estimated_delivery_time", estimated_delivery_time)
-              |> Map.put("delivery", delivery_details)
-            else
-              item
-            end
-          end)
-        else
-          item
-        end
-      end)
+  defp enhance_item(item, order, is_delivery, is_takeaway) do
+    item
+    |> Map.put("order_id", order["_id"])
+    |> Map.put("order_counter", order["order_counter"])
+    |> Map.put("order_type", order["order_type"])
+    |> Map.put("estimated_preparation_time", order["estimated_preparation_time"] || 0)
+    |> then(fn item ->
+      if is_delivery or is_takeaway do
+        item
+        |> Map.put("delivery_status", order["delivery_status"])
+        |> then(fn item ->
+          if is_delivery do
+            item
+            |> Map.put("assigned_driver_id", order["assigned_driver_id"])
+            |> Map.put("estimated_delivery_time", order["estimated_delivery_time"])
+            |> Map.put("delivery", order["delivery"])
+          else
+            item
+          end
+        end)
+      else
+        item
+      end
+    end)
+  end
 
+  defp process_item(item, department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt}) do
     dept = get_in(item, ["product", "category", "department"])
     user_order_action_status = item["user_order_action_status"]
-    current_status = user_order_action_status["current"]["status"]
+    current_status = get_in(user_order_action_status, ["current", "status"])
+    username = get_in(user_order_action_status, ["current", "user", "username"])
 
     if dept && dept["id"] == department_id do
       case current_status do
         "Pending" ->
-          new_pend = update_in(pend, [table_data_key], fn existing -> (existing || []) ++ [enhanced_item] end)
+          new_pend = update_in(pend, [table_data_key], fn existing -> (existing || []) ++ [item] end)
           {true, new_pend, call, ready, deliv, update_count(cnt, :pending, 1)}
 
         "Called" ->
-          username = user_order_action_status["current"]["user"]["username"]
-          new_call = update_user_items(call, table_data_key, username, enhanced_item)
+          new_call = update_user_items(call, table_data_key, username, item)
           {true, pend, new_call, ready, deliv, update_count(cnt, :called, 1)}
 
         "Ready" ->
-          username = user_order_action_status["current"]["user"]["username"]
-          new_ready = update_user_items(ready, table_data_key, username, enhanced_item)
+          new_ready = update_user_items(ready, table_data_key, username, item)
           {true, pend, call, new_ready, deliv, cnt}
 
         "Delivered" ->
-          username = user_order_action_status["current"]["user"]["username"]
-          new_deliv = update_user_items(deliv, table_data_key, username, enhanced_item)
+          new_deliv = update_user_items(deliv, table_data_key, username, item)
           {true, pend, call, ready, new_deliv, update_count(cnt, :delivered, 1)}
 
         "Deleted" ->
-          process_deleted_item(user_order_action_status, enhanced_item, table_data_key,
+          process_deleted_item(user_order_action_status, item, table_data_key,
                               {has_items, pend, call, ready, deliv, cnt})
 
         _ ->
