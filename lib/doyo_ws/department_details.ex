@@ -46,8 +46,8 @@ defmodule DoyoWs.DepartmentDetails do
     {:ok, result}
   end
 
-  defp process_guests_update(orders, table_order, menu, restaurant_id, _table_id) do
-    table_data_key = build_table_key(table_order, menu)
+  defp process_guests_update(orders, table_order, menu, restaurant_id, table_id) do
+    table_data_key = get_table_data_key(table_order, menu)
 
     items_by_dept =
       orders
@@ -61,8 +61,8 @@ defmodule DoyoWs.DepartmentDetails do
         "tables" => [
           %{
             "name" => table_data_key,
-            "table_id" => table_order["id"],
-            "data" => %{}, # Assuming this comes from another module
+            "table_id" => table_id,
+            "data" => get_table(restaurant_id, table_id),
             "update_guests" => true
           }
         ]
@@ -71,13 +71,42 @@ defmodule DoyoWs.DepartmentDetails do
     end)
   end
 
-  defp process_item_action(table_order, menu, order_items, action, restaurant_id) do
-    table_data_key = build_table_key(table_order, menu)
-    user_order_action_status = hd(order_items)["user_order_action_status"]
-    user = get_in(user_order_action_status, ["current", "user"])
+  defp get_user_info_from_item(item) do
+    user_order_action_status = item["user_order_action_status"]
+    current = get_in(user_order_action_status, ["current"])
+    status = if current, do: current["status"], else: nil
+    user = if current, do: current["user"], else: nil
     username = if user, do: user["username"], else: nil
-    time = user_order_action_status["current"]["timestamp"]
+    time = if current, do: current["timestamp"], else: nil
 
+    {status, username, time, user_order_action_status}
+  end
+
+  defp get_user_info_from_items(items) when is_list(items) and length(items) > 0 do
+    first_item = hd(items)
+    get_user_info_from_item(first_item)
+  end
+
+  defp get_user_info_from_items(_) do
+    {nil, nil, nil, nil}
+  end
+
+  defp get_user_info_from_items_map(items_map) when map_size(items_map) > 0 do
+    first_dept_items = hd(Map.values(items_map))
+    if length(first_dept_items) > 0 do
+      get_user_info_from_item(hd(first_dept_items))
+    else
+      {nil, nil, nil, nil}
+    end
+  end
+
+  defp get_user_info_from_items_map(_) do
+    {nil, nil, nil, nil}
+  end
+
+  defp process_item_action(table_order, menu, order_items, action, restaurant_id) do
+    table_data_key = get_table_data_key(table_order, menu)
+    {_, username, time, _} = get_user_info_from_items(order_items)
     items_by_dept = group_items_by_department(order_items)
 
     # Build response data grouped by department ID
@@ -88,7 +117,7 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp process_item_delete(orders, table_order, menu, deleted_items, restaurant_id) do
-    table_data_key = build_table_key(table_order, menu)
+    table_data_key = get_table_data_key(table_order, menu)
     username = if deleted_items["user"], do: deleted_items["user"]["username"], else: nil
 
     items_by_dept = get_items_by_department(orders, deleted_items)
@@ -114,12 +143,8 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp process_item_edit(table_order, menu, order_items, restaurant_id) do
-    table_data_key = build_table_key(table_order, menu)
-    user_order_action_status = hd(order_items)["user_order_action_status"]
-    user = get_in(user_order_action_status, ["current", "user"])
-    username = if user, do: user["username"], else: nil
-    time = user_order_action_status["current"]["timestamp"]
-
+    table_data_key = get_table_data_key(table_order, menu)
+    {_, username, time, _} = get_user_info_from_items(order_items)
     items_by_dept = group_items_by_department(order_items)
 
     # Return payload grouped by department ID
@@ -137,13 +162,9 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp process_item_sent_back(orders, table_order, menu, sent_back_items, restaurant_id) do
-    table_data_key = build_table_key(table_order, menu)
-
+    table_data_key = get_table_data_key(table_order, menu)
     items_by_dept = get_items_by_department(orders, sent_back_items)
-    user_order_action_status = if items_by_dept != %{}, do: hd(hd(Map.values(items_by_dept)))["user_order_action_status"], else: nil
-    user = if user_order_action_status, do: get_in(user_order_action_status, ["current", "user"]), else: nil
-    username = if user, do: user["username"], else: nil
-    time = if user_order_action_status, do: user_order_action_status["current"]["timestamp"], else: nil
+    {_, username, time, _} = get_user_info_from_items_map(items_by_dept)
 
     # Return payload grouped by department ID
     Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
@@ -167,7 +188,7 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp process_new_order(order, restaurant_id) do
-    table_data_key = build_table_key(order["table_order"], order["menu"])
+    table_data_key = get_table_data_key(order["table_order"], order["menu"])
 
     enhanced_order = enhance_order_data(order)
     items_by_dept = group_items_by_department(enhanced_order["items"])
@@ -189,7 +210,7 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   # Helper functions
-  defp build_table_key(table_order, menu) do
+  defp get_table_data_key(table_order, menu) do
     "#{table_order["name"]} #{menu["title"]}"
   end
 
@@ -448,13 +469,11 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp process_item(item, department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt}) do
-    dept = get_in(item, ["product", "category", "department"])
-    user_order_action_status = item["user_order_action_status"]
-    current_status = get_in(user_order_action_status, ["current", "status"])
-    username = get_in(user_order_action_status, ["current", "user", "username"])
+    dept_id = get_item_department_id(item)
+    {status, username, _, user_order_action_status} = get_user_info_from_item(item)
 
-    if dept && dept["id"] == department_id do
-      case current_status do
+    if dept_id == department_id do
+      case status do
         "Pending" ->
           new_pend = update_in(pend, [table_data_key], fn existing -> (existing || []) ++ [item] end)
           {true, new_pend, call, ready, deliv, update_count(cnt, :pending, 1)}
@@ -531,9 +550,16 @@ defmodule DoyoWs.DepartmentDetails do
   end
 
   defp get_guests(restaurant_id, table_id) do
+    case get_table(restaurant_id, table_id) do
+      %{} -> 0
+      hd-> hd["guests"]
+    end
+  end
+
+  defp get_table(restaurant_id, table_id) do
     case DoyoWs.TableReservationService.get_by_table(restaurant_id, table_id) do
-      [] -> 0
-      [hd | _tl] -> hd["guests"]
+      [] -> %{}
+      [hd | _tl] -> hd
     end
   end
 end
