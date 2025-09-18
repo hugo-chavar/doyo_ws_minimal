@@ -201,40 +201,6 @@ defmodule DoyoWs.DepartmentDetails do
     Enum.group_by(items, &get_item_department_id/1)
   end
 
-  defp enhance_order_data(order) do
-    order_type = order["order_type"]
-    is_delivery = order_type == "MenuDelivery"
-    is_takeaway = order_type == "MenuTakeAway"
-
-    enhanced_items = Enum.map(order["items"], fn item ->
-      item
-      |> Map.put("order_id", order["_id"])
-      |> Map.put("order_counter", order["order_counter"])
-      |> Map.put("order_type", order_type)
-      |> Map.put("estimated_preparation_time", order["estimated_preparation_time"] || 0)
-      |> then(fn item ->
-        if is_delivery or is_takeaway do
-          item
-          |> Map.put("delivery_status", order["delivery_status"])
-          |> then(fn item ->
-            if is_delivery do
-              item
-              |> Map.put("assigned_driver_id", order["assigned_driver_id"])
-              |> Map.put("estimated_delivery_time", order["estimated_delivery_time"])
-              |> Map.put("delivery", order["delivery"])
-            else
-              item
-            end
-          end)
-        else
-          item
-        end
-      end)
-    end)
-
-    Map.put(order, "items", enhanced_items)
-  end
-
   defp build_action_response("Called", table_key, table_order, username, time, items) do
     %{
       "tables" => [
@@ -459,6 +425,40 @@ defmodule DoyoWs.DepartmentDetails do
       end
 
     {table_data, new_pending, new_called, new_ready, new_delivered, new_counts, table_keys}
+  end
+
+  defp enhance_order_data(order) do
+    order_type = order["order_type"]
+    is_delivery = order_type == "MenuDelivery"
+    is_takeaway = order_type == "MenuTakeAway"
+
+    enhanced_items = Enum.map(order["items"], fn item ->
+      item
+      |> Map.put("order_id", order["_id"])
+      |> Map.put("order_counter", order["order_counter"])
+      |> Map.put("order_type", order_type)
+      |> Map.put("estimated_preparation_time", order["estimated_preparation_time"] || 0)
+      |> then(fn item ->
+        if is_delivery or is_takeaway do
+          item
+          |> Map.put("delivery_status", order["delivery_status"])
+          |> then(fn item ->
+            if is_delivery do
+              item
+              |> Map.put("assigned_driver_id", order["assigned_driver_id"])
+              |> Map.put("estimated_delivery_time", order["estimated_delivery_time"])
+              |> Map.put("delivery", order["delivery"])
+            else
+              item
+            end
+          end)
+        else
+          item
+        end
+      end)
+    end)
+
+    Map.put(order, "items", enhanced_items)
   end
 
   defp process_item(item, order_id, order_counter, order_type, estimated_preparation_time,
