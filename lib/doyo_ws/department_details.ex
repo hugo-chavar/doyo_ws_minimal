@@ -1,6 +1,7 @@
 defmodule DoyoWs.DepartmentDetails do
   require Logger
   alias DoyoWs.OrderService
+  alias DoyoWs.OrderEnhancer
 
   # Public API for different update scenarios
   def get_full_department_details(restaurant_id, department_id) do
@@ -190,7 +191,7 @@ defmodule DoyoWs.DepartmentDetails do
   defp process_new_order(order, restaurant_id) do
     table_data_key = get_table_data_key(order["table_order"], order["menu"])
 
-    enhanced_order = enhance_order_data(order)
+    enhanced_order = OrderEnhancer.enhance(order)
     items_by_dept = group_items_by_department(enhanced_order["items"])
 
     # Return payload grouped by department ID
@@ -384,7 +385,7 @@ defmodule DoyoWs.DepartmentDetails do
     table_data_key = "#{order["table_order"]["name"]} #{order["menu"]["title"]}"
 
     # Enhance the order data first
-    enhanced_order = enhance_order_data(order)
+    enhanced_order = OrderEnhancer.enhance(order)
 
     # Initialize table data if not exists
     table_data =
@@ -428,44 +429,6 @@ defmodule DoyoWs.DepartmentDetails do
       end
 
     {table_data, new_pending, new_called, new_ready, new_delivered, new_counts, table_keys}
-  end
-
-  defp enhance_order_data(order) do
-    order_type = order["order_type"]
-    is_delivery = order_type == "MenuDelivery"
-    is_takeaway = order_type == "MenuTakeAway"
-
-    enhanced_items = Enum.map(order["items"], fn item ->
-      enhance_item(item, order, is_delivery, is_takeaway)
-    end)
-
-    Map.put(order, "items", enhanced_items)
-  end
-
-  defp enhance_item(item, order, is_delivery, is_takeaway) do
-    item
-    |> Map.put("order_id", order["_id"])
-    |> Map.put("order_counter", order["order_counter"])
-    |> Map.put("order_type", order["order_type"])
-    |> Map.put("estimated_preparation_time", order["estimated_preparation_time"] || 0)
-    |> then(fn item ->
-      if is_delivery or is_takeaway do
-        item
-        |> Map.put("delivery_status", order["delivery_status"])
-        |> then(fn item ->
-          if is_delivery do
-            item
-            |> Map.put("assigned_driver_id", order["assigned_driver_id"])
-            |> Map.put("estimated_delivery_time", order["estimated_delivery_time"])
-            |> Map.put("delivery", order["delivery"])
-          else
-            item
-          end
-        end)
-      else
-        item
-      end
-    end)
   end
 
   defp process_item(item, department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt}) do
