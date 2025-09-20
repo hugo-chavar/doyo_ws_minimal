@@ -1,4 +1,4 @@
-defmodule DoyoWs.OrderEnhancer do
+defmodule DoyoWs.Order do
 
   def enhance(order) do
     order_type = order["order_type"]

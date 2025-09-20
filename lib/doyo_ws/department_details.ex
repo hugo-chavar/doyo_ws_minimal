@@ -1,7 +1,7 @@
 defmodule DoyoWs.DepartmentDetails do
   require Logger
   alias DoyoWs.OrderService
-  alias DoyoWs.OrderEnhancer
+  alias DoyoWs.Order
 
   # Public API for different update scenarios
   def get_full_department_details(restaurant_id, department_id) do
@@ -191,8 +191,8 @@ defmodule DoyoWs.DepartmentDetails do
   defp process_new_order(order, restaurant_id) do
     table_data_key = get_table_data_key(order["table_order"], order["menu"])
 
-    enhanced_order = OrderEnhancer.enhance(order)
-    items_by_dept = group_items_by_department(enhanced_order["items"])
+    order = Order.enhance(order)
+    items_by_dept = group_items_by_department(order["items"])
 
     # Return payload grouped by department ID
     Enum.reduce(items_by_dept, %{}, fn {dept_id, items}, acc ->
@@ -385,7 +385,7 @@ defmodule DoyoWs.DepartmentDetails do
     table_data_key = "#{order["table_order"]["name"]} #{order["menu"]["title"]}"
 
     # Enhance the order data first
-    enhanced_order = OrderEnhancer.enhance(order)
+    order = Order.enhance(order)
 
     # Initialize table data if not exists
     table_data =
@@ -416,7 +416,7 @@ defmodule DoyoWs.DepartmentDetails do
 
     # Process items and track if any belong to the target department
     {has_dept_items, new_pending, new_called, new_ready, new_delivered, new_counts} =
-      Enum.reduce(enhanced_order["items"], {false, pending_items, called_items, ready_items, delivered_items, counts}, fn item, {has_items, pend, call, ready, deliv, cnt} ->
+      Enum.reduce(order["items"], {false, pending_items, called_items, ready_items, delivered_items, counts}, fn item, {has_items, pend, call, ready, deliv, cnt} ->
         process_item(item, department_id, table_data_key, {has_items, pend, call, ready, deliv, cnt})
       end)
 
