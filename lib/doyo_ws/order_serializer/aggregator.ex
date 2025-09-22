@@ -1,5 +1,4 @@
 defmodule OrderSerializer.Aggregator do
-  alias OrderSerializer.{Order, OrderItem}
   alias OrderSerializer.Specifications
 
   def filter_orders(orders, specification) do
@@ -67,27 +66,6 @@ defmodule OrderSerializer.Aggregator do
       end)
 
       {dept_name, department_data}
-    end)
-  end
-
-  defp group_items_by_table(order_items, status) do
-    order_items
-    |> Enum.filter(fn {_order, item} -> item.status == status end)
-    |> Enum.group_by(fn {order, _item} ->
-      table_name = "#{order.table_order["name"]} #{order.menu["title"]}"
-      {table_name, order.table_order["id"]}
-    end)
-    |> Enum.map(fn {{table_name, table_id}, items_with_orders} ->
-      # Get the first order for metadata (they should all be from same table)
-      {first_order, _} = hd(items_with_orders)
-
-      %{
-        name: table_name,
-        table_id: table_id,
-        order_datetime: first_order.order_datetime,
-        no_of_guests: first_order.no_of_guests,
-        items: Enum.map(items_with_orders, fn {_order, item} -> item end)
-      }
     end)
   end
 
