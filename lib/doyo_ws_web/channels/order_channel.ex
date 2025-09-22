@@ -2,19 +2,21 @@ defmodule DoyoWsWeb.OrderChannel do
   use DoyoWsWeb, :channel
   require Logger
 
-  defp redis_client do
-    Application.fetch_env!(:doyo_ws, :redis_impl)
-  end
-
   @impl true
-  def join("order:" <> order_id, _params, socket) do
-    if valid_object_id?(order_id) do
-      Logger.info("JOINED order:#{order_id}")
-      send(self(), {:after_join, order_id})
-      {:ok, socket}
-    else
-      Logger.warning("Rejected invalid order_id: #{order_id}")
-      {:error, %{reason: "invalid_order_id"}}
+  def join("order:" <> rest, _params, socket) do
+    case String.split(rest, ":", parts: 2) do
+      [restaurant_id, order_id] ->
+        if valid_params?(restaurant_id, order_id) do
+          Logger.info("JOINED order#{restaurant_id}:#{order_id}")
+          send(self(), {:after_join, restaurant_id, order_id})
+          {:ok, socket}
+        else
+          Logger.warning("Rejected invalid params: #{restaurant_id}, #{order_id}")
+          {:error, %{reason: "invalid_params_format"}}
+        end
+      _ ->
+        Logger.warning("Invalid counter topic format: #{rest}")
+        {:error, %{reason: "invalid_format"}}
     end
   end
 
@@ -24,21 +26,10 @@ defmodule DoyoWsWeb.OrderChannel do
   end
 
   @impl true
-  def handle_info({:after_join, order_id}, socket) do
+  def handle_info({:after_join, restaurant_id, order_id}, socket) do
     # Fetch cached order from Redis
-    case redis_client().get("json_order_" <> order_id) do
-      {:ok, nil} ->
-        :ok
-
-      {:ok, json} ->
-        decoded = Jason.decode!(json)
-        push(socket, "update", decoded)
-
-      {:error, reason} ->
-        Logger.error("Redis get failed: #{inspect(reason)}")
-        :ok
-      end
-
+    order = DoyoWs.OrderService.get_by_order_id(restaurant_id, order_id)
+    push(socket, "update", order)
     {:noreply, socket}
   end
 
@@ -60,8 +51,8 @@ defmodule DoyoWsWeb.OrderChannel do
   # -----------------
   # Validation helper
   # -----------------
-  defp valid_object_id?(id) when is_binary(id) do
-    String.length(id) == 24 and String.match?(id, ~r/\A[0-9a-fA-F]{24}\z/)
+  defp valid_params?(restaurant_id , order_id) when is_binary(order_id) do
+    String.match?(restaurant_id, ~r/\A[[:digit:]]+\z/) and String.length(order_id) == 24 and String.match?(order_id, ~r/\A[0-9a-fA-F]{24}\z/)
   end
 
 
