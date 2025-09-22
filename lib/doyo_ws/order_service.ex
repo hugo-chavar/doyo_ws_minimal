@@ -9,7 +9,9 @@ defmodule DoyoWs.OrderService do
         |> Enum.map(&Jason.decode/1)
         |> Enum.filter(fn
           {:ok, _order} -> true
-          {:error, _} -> false
+          {:error, reason} ->
+            Logger.info("get_by_restaurant Error decoding order: #{reason}")
+            false
         end)
         |> Enum.map(fn {:ok, order} -> order end)
 
