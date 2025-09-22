@@ -1,0 +1,132 @@
+defmodule OrderSerializer.Aggregator do
+  alias OrderSerializer.{Order, OrderItem}
+  alias OrderSerializer.Specifications
+
+  def filter_orders(orders, specification) do
+    Enum.filter(orders, fn order ->
+      Specifications.is_satisfied_by(specification, order)
+    end)
+  end
+
+  def group_orders_by_table(orders) do
+    orders
+    |> Enum.group_by(fn order ->
+      order.table_order["id"]
+    end)
+  end
+
+  def group_items_by_department(orders) do
+    orders
+    |> Enum.flat_map(fn order ->
+      Enum.map(order.items, fn item ->
+        {item.product.category.department.name, order, item}
+      end)
+    end)
+    |> Enum.group_by(fn {dept_name, _, _} -> dept_name end, fn {_, order, item} ->
+      {order, item}
+    end)
+    |> Enum.into(%{}, fn {dept_name, order_items} ->
+      grouped_items = order_items
+      |> Enum.group_by(fn {order, item} -> item.status end)
+
+      department_data = %{
+        "pending_items" => group_items_by_table(order_items, "Pending"),
+        "called_items" => group_items_by_table(order_items, "Called"),
+        "ready_items" => group_items_by_table(order_items, "Ready"),
+        "delivered_items" => group_items_by_table(order_items, "Delivered")
+      }
+
+      {dept_name, department_data}
+    end)
+  end
+
+  defp group_items_by_table(order_items, status) do
+    order_items
+    |> Enum.filter(fn {_order, item} -> item.status == status end)
+    |> Enum.group_by(fn {order, _item} ->
+      table_name = "#{order.table_order["name"]} #{order.menu["title"]}"
+      {table_name, order.table_order["id"]}
+    end)
+    |> Enum.map(fn {{table_name, table_id}, items_with_orders} ->
+      # Get the first order for metadata (they should all be from same table)
+      {first_order, _} = hd(items_with_orders)
+
+      %{
+        name: table_name,
+        table_id: table_id,
+        order_datetime: first_order.order_datetime,
+        no_of_guests: first_order.no_of_guests,
+        items: Enum.map(items_with_orders, fn {_order, item} -> item end)
+      }
+    end)
+  end
+
+  def calculate_table_summary(table_orders) when is_list(table_orders) and table_orders != [] do
+    latest_order = Enum.max_by(table_orders, & &1.order_datetime)
+
+    %{
+      table_order: latest_order.table_order,
+      menu: latest_order.menu,
+      order_type: latest_order.order_type,
+      order_datetime: latest_order.order_datetime,
+      latest_order_datetime: latest_order.order_datetime,
+      last_action_datetime: get_last_action_datetime(table_orders),
+      total_amount: Enum.reduce(table_orders, 0, &(&2 + &1.total_amount)),
+      total_items: Enum.reduce(table_orders, 0, &(&2 + &1.total_items)),
+      pending_items: count_items_by_status(table_orders, "Pending"),
+      called_items: count_items_by_status(table_orders, "Called"),
+      ready_items: count_items_by_status(table_orders, "Ready"),
+      delivered_items: count_items_by_status(table_orders, "Delivered"),
+      no_of_guests: latest_order.no_of_guests,
+      currency: latest_order.currency,
+      new_order: false, # This would need business logic
+      billed: latest_order.billed || false
+    }
+  end
+
+  def calculate_table_summary([]), do: %{}
+
+  defp get_last_action_datetime(orders) do
+    orders
+    |> Enum.flat_map(fn order ->
+      Enum.flat_map(order.items, fn item ->
+        case item.user_order_action_status do
+          %{"current" => %{"timestamp" => timestamp}} -> [timestamp]
+          _ -> []
+        end
+      end)
+    end)
+    |> case do
+      [] ->
+        if orders != [], do: hd(orders).order_datetime, else: nil
+      timestamps ->
+        Enum.max(timestamps)
+    end
+  end
+
+  defp count_items_by_status(orders, status) do
+    orders
+    |> Enum.flat_map(& &1.items)
+    |> Enum.filter(fn item ->
+      item.status == status and not item.deleted
+    end)
+    |> length()
+  end
+
+  def calculate_department_totals(department_data) do
+    %{
+      pending_items: count_items_in_status_group(department_data["pending_items"]),
+      called_items: count_items_in_status_group(department_data["called_items"]),
+      ready_items: count_items_in_status_group(department_data["ready_items"]),
+      delivered_items: count_items_in_status_group(department_data["delivered_items"]),
+      deleted_items: 0 # Would need separate calculation
+    }
+  end
+
+  defp count_items_in_status_group(status_group) when is_list(status_group) do
+    Enum.reduce(status_group, 0, fn table_group, acc ->
+      acc + length(table_group[:items] || [])
+    end)
+  end
+  defp count_items_in_status_group(_), do: 0
+end
