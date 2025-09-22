@@ -2,7 +2,7 @@ defmodule OrderSerializer.Serializers do
   alias OrderSerializer.Aggregator
   alias OrderSerializer.Specifications
 
-  @callback serialize(aggregator :: module(), orders :: list()) :: map() | list()
+  @callback serialize(serializer :: any(), aggregator :: module(), orders :: list()) :: map() | list()
 
   # Single Table Serializer
   defmodule SingleTable do
@@ -12,7 +12,7 @@ defmodule OrderSerializer.Serializers do
 
     def new(table_id), do: %__MODULE__{table_id: table_id}
 
-    def serialize(%__MODULE__{table_id: table_id}, aggregator, orders) do
+    def serialize(%__MODULE__{table_id: table_id}, _aggregator, orders) do
       filtered_orders = Aggregator.filter_orders(
         orders,
         Specifications.active_orders_for_table(table_id)
@@ -36,7 +36,7 @@ defmodule OrderSerializer.Serializers do
 
     def new, do: %__MODULE__{}
 
-    def serialize(%__MODULE__{}, aggregator, orders) do
+    def serialize(%__MODULE__{}, _aggregator, orders) do
       active_orders = Aggregator.filter_orders(orders, Specifications.active_orders())
 
       active_orders
@@ -55,18 +55,20 @@ defmodule OrderSerializer.Serializers do
 
     def new(department_name \\ nil), do: %__MODULE__{department_name: department_name}
 
-    def serialize(%__MODULE__{department_name: dept_name}, aggregator, orders) do
+    def serialize(%__MODULE__{department_name: dept_name}, _aggregator, orders) do
       active_orders = Aggregator.filter_orders(orders, Specifications.active_orders())
       department_data = Aggregator.group_items_by_department(active_orders)
 
       if dept_name && Map.has_key?(department_data, dept_name) do
         data = department_data[dept_name]
+        totals = Aggregator.calculate_department_totals(data)
+
         %{
           tables: data,
-          delivered_items: Aggregator.calculate_department_totals(data).delivered_items,
-          called_items: Aggregator.calculate_department_totals(data).called_items,
-          pending_items: Aggregator.calculate_department_totals(data).pending_items,
-          deleted_items: 0 # Would need calculation
+          delivered_items: totals.delivered_items,
+          called_items: totals.called_items,
+          pending_items: totals.pending_items,
+          deleted_items: totals.deleted_items
         }
       else
         # Return all departments

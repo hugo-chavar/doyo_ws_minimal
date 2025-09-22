@@ -1,26 +1,23 @@
+defmodule OrderSerializer.Specification do
+  @callback is_satisfied_by(spec :: any(), order :: any()) :: boolean()
+end
+
 defmodule OrderSerializer.Specifications do
   alias OrderSerializer.Order
-
-  # Base specification behavior
-  defmacro __using__(_opts) do
-    quote do
-      @behaviour OrderSerializer.Specification
-    end
-  end
-
-  @callback is_satisfied_by(order :: Order.t()) :: boolean()
 
   # Active order specification
   defmodule ActiveOrder do
     @behaviour OrderSerializer.Specification
+    defstruct []
 
-    def is_satisfied_by(%Order{completed: completed}), do: not completed
+    def new, do: %__MODULE__{}
+
+    def is_satisfied_by(%__MODULE__{}, %Order{completed: completed}), do: not completed
   end
 
   # Department specification
   defmodule Department do
     @behaviour OrderSerializer.Specification
-
     defstruct [:department_id]
 
     def new(department_id), do: %__MODULE__{department_id: department_id}
@@ -35,7 +32,6 @@ defmodule OrderSerializer.Specifications do
   # Table specification
   defmodule Table do
     @behaviour OrderSerializer.Specification
-
     defstruct [:table_id]
 
     def new(table_id), do: %__MODULE__{table_id: table_id}
@@ -48,7 +44,6 @@ defmodule OrderSerializer.Specifications do
   # Item status specification
   defmodule ItemStatus do
     @behaviour OrderSerializer.Specification
-
     defstruct [:status]
 
     def new(status), do: %__MODULE__{status: status}
@@ -61,20 +56,25 @@ defmodule OrderSerializer.Specifications do
   # Composite AND specification
   defmodule And do
     @behaviour OrderSerializer.Specification
-
     defstruct [:specifications]
 
     def new(specifications), do: %__MODULE__{specifications: List.wrap(specifications)}
 
     def is_satisfied_by(%__MODULE__{specifications: specs}, order) do
-      Enum.all?(specs, fn spec -> OrderSerializer.Specifications.is_satisfied_by(spec, order) end)
+      Enum.all?(specs, fn spec ->
+        case spec do
+          %module{} -> module.is_satisfied_by(spec, order)
+          func when is_function(func, 1) -> func.(order)
+          _ -> false
+        end
+      end)
     end
   end
 
   # Helper function to apply any specification
   def is_satisfied_by(specification, order) do
     case specification do
-      %module{} = spec when is_struct(spec, module) ->
+      %module{} = spec ->
         module.is_satisfied_by(spec, order)
       func when is_function(func, 1) ->
         func.(order)
@@ -85,14 +85,14 @@ defmodule OrderSerializer.Specifications do
 
   # Common specification combinations
   def active_orders do
-    %ActiveOrder{}
+    ActiveOrder.new()
   end
 
   def active_orders_for_table(table_id) do
-    And.new([%ActiveOrder{}, %Table{table_id: table_id}])
+    And.new([ActiveOrder.new(), Table.new(table_id)])
   end
 
   def active_orders_for_department(department_id) do
-    And.new([%ActiveOrder{}, %Department{department_id: department_id}])
+    And.new([ActiveOrder.new(), Department.new(department_id)])
   end
 end

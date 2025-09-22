@@ -15,26 +15,56 @@ defmodule OrderSerializer.Aggregator do
     end)
   end
 
+
   def group_items_by_department(orders) do
     orders
     |> Enum.flat_map(fn order ->
       Enum.map(order.items, fn item ->
-        {item.product.category.department.name, order, item}
+        dept_name = item.product.category.department.name
+        {dept_name, order, item}
       end)
     end)
     |> Enum.group_by(fn {dept_name, _, _} -> dept_name end, fn {_, order, item} ->
       {order, item}
     end)
     |> Enum.into(%{}, fn {dept_name, order_items} ->
-      grouped_items = order_items
-      |> Enum.group_by(fn {order, item} -> item.status end)
-
+      # Initialize department data structure
       department_data = %{
-        "pending_items" => group_items_by_table(order_items, "Pending"),
-        "called_items" => group_items_by_table(order_items, "Called"),
-        "ready_items" => group_items_by_table(order_items, "Ready"),
-        "delivered_items" => group_items_by_table(order_items, "Delivered")
+        "pending_items" => [],
+        "called_items" => [],
+        "ready_items" => [],
+        "delivered_items" => []
       }
+
+      # Group by status and then by table
+      grouped_by_status = Enum.group_by(order_items, fn {_order, item} ->
+        item.status
+      end)
+
+      department_data = Enum.reduce(grouped_by_status, department_data, fn {status, items_with_orders}, acc ->
+        status_key = "#{String.downcase(status)}_items"
+
+        if Map.has_key?(acc, status_key) do
+          table_groups = items_with_orders
+          |> Enum.group_by(fn {order, _item} ->
+            {order.table_order["name"], order.table_order["id"]}
+          end)
+          |> Enum.map(fn {{table_name, table_id}, items} ->
+            {first_order, _} = hd(items)
+            %{
+              name: "#{table_name} #{first_order.menu["title"]}",
+              table_id: table_id,
+              order_datetime: first_order.order_datetime,
+              no_of_guests: first_order.no_of_guests,
+              items: Enum.map(items, fn {_order, item} -> item end)
+            }
+          end)
+
+          Map.put(acc, status_key, table_groups)
+        else
+          acc
+        end
+      end)
 
       {dept_name, department_data}
     end)
