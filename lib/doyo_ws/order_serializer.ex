@@ -1,17 +1,16 @@
 defmodule OrderSerializer do
-  alias OrderSerializer.{Aggregator, Serializers}
+  alias OrderSerializer.Serializers
 
-  defstruct [:orders, :aggregator]
+  defstruct [:orders]
 
   def new(orders) do
     %__MODULE__{
-      orders: orders,
-      aggregator: Aggregator
+      orders: orders
     }
   end
 
-  def serialize(%__MODULE__{} = service, serializer) do
-    serializer.serialize(serializer, service.aggregator, service.orders)
+  def serialize(%__MODULE__{orders: orders}, serializer) do
+    serializer.serialize(serializer, nil, orders)
   end
 
   # Convenience functions
