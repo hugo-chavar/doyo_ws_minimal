@@ -19,7 +19,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
     {:ok, _, socket} =
       DoyoWsWeb.UserSocket
       |> socket("user_id", %{some: :assign})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a")
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:60c72b1f9b3e6c001c8c0b1a")
 
     %{socket: socket}
   end
@@ -53,21 +53,21 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
     {:ok, _, _socket} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:60c72b1f9b3e6c001c8c0b1a", %{})
   end
 
   test "join/3 validation rejects invalid ObjectIds" do
-    {:error, %{reason: "invalid_order_id"}} =
+    {:error, %{reason: "invalid_format"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:ZZZZZZZZZZZZZZZZZZZZZZZZ", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:ZZZZZZZZZZZZZZZZZZZZZZZZ", %{})
 
     {:error, %{reason: "invalid_order_id"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:abc123", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:abc123", %{})
   end
 
   test "join/3 validation rejects non-order topics" do
-    {:error, %{reason: "invalid_order_id"}} =
+    {:error, %{reason: "invalid_format"}} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
       |> subscribe_and_join(DoyoWsWeb.OrderChannel, "something_else:123", %{})
   end
@@ -85,7 +85,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
     {:ok, _, _socket} =
       socket(DoyoWsWeb.UserSocket, "user_id", %{})
-      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+      |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:60c72b1f9b3e6c001c8c0b1a", %{})
 
     assert_push "update", ^payload
   end
@@ -100,7 +100,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
       capture_log(fn ->
         {:ok, _, _socket} =
           socket(DoyoWsWeb.UserSocket, "user_id", %{})
-          |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:60c72b1f9b3e6c001c8c0b1a", %{})
+          |> subscribe_and_join(DoyoWsWeb.OrderChannel, "order:31:60c72b1f9b3e6c001c8c0b1a", %{})
 
         refute_push "update", _any
       end)
