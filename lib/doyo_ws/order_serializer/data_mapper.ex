@@ -13,6 +13,9 @@ defmodule OrderSerializer.DataMapper do
       total_items: get_item_count(order_data["items"]),
       no_of_guests: order_data["no_of_guests"],
       completed: order_data["completed"] || false,
+      billed: Enum.all?(order_data["items"], fn item ->
+        item["completed"] or item["deleted"]
+      end),
       subtotal: order_data["subtotal"],
       vat: order_data["vat"],
       service_fee: order_data["service_fee"],
