@@ -16,13 +16,13 @@ defmodule DoyoWsWeb.DepartmentChannel do
           {:error, %{reason: "invalid_department"}}
         end
       _ ->
-        Logger.warning("Invalid deparment topic format: #{rest}")
+        Logger.warning("Invalid department topic format: #{rest}")
         {:error, %{reason: "invalid_format"}}
     end
   end
 
   @impl true
-  def handle_info({:after_deparment_join, restaurant_id, department_id}, socket) do
+  def handle_info({:after_department_join, restaurant_id, department_id}, socket) do
     orders = DoyoWs.OrderService.get_by_restaurant(restaurant_id)
 
     department_detail = OrderSerializer.serialize_department_detail(orders, department_id)
