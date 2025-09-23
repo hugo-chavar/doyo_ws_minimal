@@ -27,12 +27,12 @@ defmodule OrderSerializer do
   end
 
   @spec serialize_department_detail(list(), String.t() | nil) :: map()
-  def serialize_department_detail(orders, department_name \\ nil) do
+  def serialize_department_detail(orders, department_id \\ nil) do
     active_orders = Aggregator.filter_orders(orders, Specifications.active_orders())
     department_data = Aggregator.group_items_by_department(active_orders)
 
-    if department_name && Map.has_key?(department_data, department_name) do
-      data = department_data[department_name]
+    if department_id && Map.has_key?(department_data, department_id) do
+      data = department_data[department_id]
       totals = Aggregator.calculate_department_totals(data)
 
       %{
