@@ -56,6 +56,4 @@ defmodule DoyoWsWeb.OrderChannel do
     String.match?(restaurant_id, ~r/\A[[:digit:]]+\z/) and String.length(order_id) == 24 and String.match?(order_id, ~r/\A[0-9a-fA-F]{24}\z/)
   end
 
-
-
 end

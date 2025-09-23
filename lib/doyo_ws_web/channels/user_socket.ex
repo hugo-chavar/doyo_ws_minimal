@@ -10,8 +10,9 @@ defmodule DoyoWsWeb.UserSocket do
 
   channel "order:*", DoyoWsWeb.OrderChannel
   channel "counter:*", DoyoWsWeb.CounterChannel
-  # channel "table_details:*", DoyoWsWeb.TableChannel
-  # channel "department_details:*", DoyoWsWeb.DeparmentChannel
+  channel "table:*", DoyoWsWeb.TableChannel
+  channel "tables:*", DoyoWsWeb.TablesChannel
+  channel "department:*", DoyoWsWeb.DeparmentChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
