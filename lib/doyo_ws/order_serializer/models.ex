@@ -35,7 +35,7 @@ defmodule OrderSerializer.Product do
   ]}
   defstruct [
     :id, :title, :category, :price, :vat, :images, :format, :extras,
-    :promotion, :cogs
+    :promotion
   ]
 end
 
@@ -50,7 +50,7 @@ defmodule OrderSerializer.OrderItem do
     :_id, :product, :status, :user_order_action_status, :actual_price,
     :ordered_price, :completed, :deleted, :paid, :timestamp, :note,
     :service_fee, :product_vat, :total_price, :price_paid, :tag, :order_id,
-    :order_type, :delivery_status
+    :order_type, :delivery_status, :estimated_preparation_time, :estimated_delivery_time
   ]
 end
 

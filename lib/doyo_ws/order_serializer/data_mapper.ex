@@ -52,6 +52,8 @@ defmodule OrderSerializer.DataMapper do
       tag: item_data["tag"],
       order_id: item_data["order_id"],
       order_type: item_data["order_type"],
+      estimated_preparation_time: item_data["estimated_preparation_time"],
+      estimated_delivery_time: item_data["estimated_delivery_time"],
       delivery_status: item_data["delivery_status"]
     }
   end
@@ -66,8 +68,6 @@ defmodule OrderSerializer.DataMapper do
       images: product_data["images"] || [],
       format: product_data["format"],
       extras: product_data["extras"],
-      promotion: product_data["promotion"],
-      cogs: product_data["cogs"] || []
     }
   end
 

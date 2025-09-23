@@ -14,7 +14,8 @@ defmodule DoyoWs.OrderService do
             Logger.info("get_by_restaurant Error decoding order: #{reason}")
             false
         end)
-        |> Enum.map(fn {:ok, order} -> DataMapper.map_order(order) end)
+        |> Enum.map(fn {:ok, order} -> DoyoWs.Order.enhance(order) end)
+        |> Enum.map(fn order -> DataMapper.map_order(order) end)
 
       {:error, reason} ->
         Logger.error("Error get orders by restaurant id #{restaurant_id}. Reason: #{reason}")
