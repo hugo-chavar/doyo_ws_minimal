@@ -41,7 +41,12 @@ defmodule OrderSerializer.Aggregator do
       end)
 
       department_data = Enum.reduce(grouped_by_status, department_data, fn {status, items_with_orders}, acc ->
-        status_key = "#{String.downcase(status)}_items"
+        # Convert status string to atom key
+        status_key =
+          status
+          |> String.downcase()
+          |> String.to_existing_atom()
+          |> then(&:"#{&1}_items")
 
         if Map.has_key?(acc, status_key) do
           table_groups = items_with_orders
