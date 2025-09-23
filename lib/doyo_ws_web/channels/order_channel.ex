@@ -7,6 +7,7 @@ defmodule DoyoWsWeb.OrderChannel do
     case String.split(rest, ":", parts: 2) do
       [restaurant_id, order_id] ->
         if valid_params?(restaurant_id, order_id) do
+          # TODO: Check if restaurant exists and user has permission
           Logger.info("JOINED order#{restaurant_id}:#{order_id}")
           send(self(), {:after_join, restaurant_id, order_id})
           {:ok, socket}
