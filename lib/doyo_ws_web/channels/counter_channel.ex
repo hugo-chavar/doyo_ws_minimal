@@ -22,7 +22,6 @@ defmodule DoyoWsWeb.CounterChannel do
 
   @impl true
   def handle_info({:after_counter_join, restaurant_id, type}, socket) do
-    # Fetch order counter from Redis
     {:ok, counter} = DoyoWs.OrderItemCounter.get_counter(restaurant_id, type)
     push(socket, "update", counter)
 
