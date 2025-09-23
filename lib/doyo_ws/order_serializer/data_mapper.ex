@@ -22,7 +22,6 @@ defmodule OrderSerializer.DataMapper do
       order_counter: order_data["order_counter"],
       latest_order_datetime: parse_datetime(order_data["timestamp"]),
       last_action_datetime: get_last_action_datetime(order_data["items"]),
-      currency: order_data["currency"],
       pending_items: [],
       called_items: [],
       ready_items: [],

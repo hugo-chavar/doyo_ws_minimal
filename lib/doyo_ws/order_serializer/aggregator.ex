@@ -86,7 +86,6 @@ defmodule OrderSerializer.Aggregator do
       ready_items: count_items_by_status(table_orders, "Ready"),
       delivered_items: count_items_by_status(table_orders, "Delivered"),
       no_of_guests: 0, # TODO: This would need business logic
-      currency: latest_order.currency,
       new_order: false, # TODO: This would need business logic
       billed: latest_order.billed || false # TODO: Check this
     }

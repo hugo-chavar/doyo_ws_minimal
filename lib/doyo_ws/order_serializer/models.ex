@@ -57,13 +57,13 @@ end
 defmodule OrderSerializer.Order do
   @derive {Jason.Encoder, only: [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :currency,
+    :order_counter, :no_of_guests, :completed,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
 
   ]}
   defstruct [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :currency,
+    :order_counter, :no_of_guests, :completed,
     :total_items,  :latest_order_datetime, :last_action_datetime, :active, :t,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
     :pending_items, :called_items, :ready_items, :delivered_items, :sent_back_items
