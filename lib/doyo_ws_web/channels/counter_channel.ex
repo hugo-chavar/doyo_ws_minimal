@@ -8,7 +8,8 @@ defmodule DoyoWsWeb.CounterChannel do
       [type, restaurant_id] ->
         if valid_params?(restaurant_id, type) do
           # TODO: Check if restaurant exists and user has permission
-          send(self(), {:after_counter_join, restaurant_id, type})
+          {rid, _} = Integer.parse(restaurant_id)
+          send(self(), {:after_counter_join, rid, type})
           {:ok, socket}
         else
           Logger.warning("Rejected invalid counter: #{type} restaurant_id: #{restaurant_id}")

@@ -9,7 +9,8 @@ defmodule DoyoWsWeb.OrderChannel do
         if valid_params?(restaurant_id, order_id) do
           # TODO: Check if restaurant exists and user has permission
           Logger.info("JOINED order#{restaurant_id}:#{order_id}")
-          send(self(), {:after_join, restaurant_id, order_id})
+          {rid, _} = Integer.parse(restaurant_id)
+          send(self(), {:after_join, rid, order_id})
           {:ok, socket}
         else
           Logger.warning("Rejected invalid params: #{restaurant_id}, #{order_id}")

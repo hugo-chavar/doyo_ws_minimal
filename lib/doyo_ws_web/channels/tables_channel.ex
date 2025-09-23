@@ -7,7 +7,8 @@ defmodule DoyoWsWeb.TablesChannel do
   def join("tables:" <> restaurant_id, _params, socket) do
       if valid_params?(restaurant_id) do
         # TODO: Check if restaurant exists and user has permission
-        send(self(), {:after_tables_join, restaurant_id})
+        {rid, _} = Integer.parse(restaurant_id)
+        send(self(), {:after_tables_join, rid})
         {:ok, socket}
       else
         Logger.warning("Rejected invalid tables: restaurant_id: #{restaurant_id}")

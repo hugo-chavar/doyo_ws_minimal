@@ -9,7 +9,9 @@ defmodule DoyoWsWeb.DepartmentChannel do
       [restaurant_id, department_id] ->
         if valid_params?(restaurant_id, department_id) do
           # TODO: Check if restaurant exists and user has permission
-          send(self(), {:after_department_join, restaurant_id, department_id})
+          {rid, _} = Integer.parse(restaurant_id)
+          {did, _} = Integer.parse(department_id)
+          send(self(), {:after_department_join, rid, did})
           {:ok, socket}
         else
           Logger.warning("Rejected invalid department: #{department_id} restaurant_id: #{restaurant_id}")
