@@ -36,8 +36,8 @@ defmodule OrderSerializer.Specifications do
 
     def new(table_id), do: %__MODULE__{table_id: table_id}
 
-    def is_satisfied_by(%__MODULE__{table_id: table_id}, %Order{table_order: %{"id" => order_table_id}}) do
-      order_table_id == table_id
+    def is_satisfied_by(%__MODULE__{table_id: table_id}, %Order{table_order: order_table}) do
+      order_table.id == table_id
     end
   end
 

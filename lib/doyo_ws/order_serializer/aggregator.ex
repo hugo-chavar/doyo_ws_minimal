@@ -10,7 +10,7 @@ defmodule OrderSerializer.Aggregator do
   def group_orders_by_table(orders) do
     orders
     |> Enum.group_by(fn order ->
-      order.table_order["id"]
+      order.table_order.id
     end)
   end
 
@@ -19,20 +19,20 @@ defmodule OrderSerializer.Aggregator do
     orders
     |> Enum.flat_map(fn order ->
       Enum.map(order.items, fn item ->
-        dept_name = item.product.category.department.name
-        {dept_name, order, item}
+        dept_id = item.product.category.department.id
+        {dept_id, order, item}
       end)
     end)
-    |> Enum.group_by(fn {dept_name, _, _} -> dept_name end, fn {_, order, item} ->
+    |> Enum.group_by(fn {dept_id, _, _} -> dept_id end, fn {_, order, item} ->
       {order, item}
     end)
-    |> Enum.into(%{}, fn {dept_name, order_items} ->
+    |> Enum.into(%{}, fn {dept_id, order_items} ->
       # Initialize department data structure
       department_data = %{
-        "pending_items" => [],
-        "called_items" => [],
-        "ready_items" => [],
-        "delivered_items" => []
+        pending_items: [],
+        called_items: [],
+        ready_items: [],
+        delivered_items: []
       }
 
       # Group by status and then by table
@@ -46,12 +46,12 @@ defmodule OrderSerializer.Aggregator do
         if Map.has_key?(acc, status_key) do
           table_groups = items_with_orders
           |> Enum.group_by(fn {order, _item} ->
-            {order.table_order["name"], order.table_order["id"]}
+            {order.table_order.name, order.table_order.id}
           end)
           |> Enum.map(fn {{table_name, table_id}, items} ->
             {first_order, _} = hd(items)
             %{
-              name: "#{table_name} #{first_order.menu["title"]}",
+              name: "#{table_name} #{first_order.menu.title}",
               table_id: table_id,
               order_datetime: first_order.order_datetime,
               no_of_guests: first_order.no_of_guests,
@@ -65,7 +65,7 @@ defmodule OrderSerializer.Aggregator do
         end
       end)
 
-      {dept_name, department_data}
+      {dept_id, department_data}
     end)
   end
 
@@ -106,7 +106,7 @@ defmodule OrderSerializer.Aggregator do
     end)
     |> case do
       [] ->
-        if orders != [], do: hd(orders).order_datetime, else: nil
+        hd(orders).order_datetime
       timestamps ->
         Enum.max(timestamps)
     end
