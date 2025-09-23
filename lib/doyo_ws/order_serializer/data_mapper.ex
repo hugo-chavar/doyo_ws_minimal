@@ -49,9 +49,15 @@ defmodule OrderSerializer.DataMapper do
       timestamp: get_item_timestamp(item_data),
       note: item_data["note"],
       service_fee: item_data["service_fee"],
+      service_fee_vat: item_data["service_fee_vat"],
       product_vat: item_data["product_vat"],
+      total_vat: item_data["total_vat"],
       total_price: item_data["total_price"],
       price_paid: item_data["price_paid"],
+      price_remaining: item_data["price_remaining"],
+      promo_discount: item_data["promo_discount"],
+      order_discount: item_data["order_discount"],
+      total_discount: item_data["total_discount"],
       tag: item_data["tag"],
       order_id: item_data["order_id"],
       order_type: item_data["order_type"],
@@ -106,6 +112,8 @@ defmodule OrderSerializer.DataMapper do
       flat_person_fee_vat: menu_data["flat_person_fee_vat"],
       home_delivery_fee: menu_data["home_delivery_fee"],
       home_delivery_fee_vat: menu_data["home_delivery_fee_vat"],
+      estimated_preparation_time: menu_data["estimated_preparation_time"],
+      estimated_delivery_time: menu_data["estimated_delivery_time"],
     }
   end
 

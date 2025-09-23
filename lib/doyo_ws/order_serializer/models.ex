@@ -11,11 +11,13 @@ end
 defmodule OrderSerializer.Menu do
   @derive {Jason.Encoder, only: [
     :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
-    :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat
+    :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat,
+    :estimated_preparation_time, :estimated_delivery_time
   ]}
   defstruct [
     :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
-    :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat
+    :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat,
+    :estimated_preparation_time, :estimated_delivery_time
   ]
 end
 
@@ -30,8 +32,8 @@ defmodule OrderSerializer.Restaurant do
 end
 
 defmodule OrderSerializer.Product do
-  @derive {Jason.Encoder, only: [
-    :id, :title, :category, :price, :vat, :images, :format, :extras
+  @derive {Jason.Encoder, except: [
+    :promotion
   ]}
   defstruct [
     :id, :title, :category, :price, :vat, :images, :format, :extras,
@@ -40,32 +42,35 @@ defmodule OrderSerializer.Product do
 end
 
 defmodule OrderSerializer.OrderItem do
-  @derive {Jason.Encoder, only: [
-    :_id, :product, :status, :user_order_action_status, :actual_price,
-    :ordered_price, :completed, :deleted, :paid, :timestamp, :note,
-    :service_fee, :product_vat, :total_price, :price_paid, :tag,
-    :delivery_status
+  @derive {Jason.Encoder, except: [
+    :order_id, :order_type
   ]}
   defstruct [
-    :_id, :product, :status, :user_order_action_status, :actual_price,
-    :ordered_price, :completed, :deleted, :paid, :timestamp, :note,
-    :service_fee, :product_vat, :total_price, :price_paid, :tag, :order_id,
-    :order_type, :delivery_status, :estimated_preparation_time, :estimated_delivery_time
+    :_id, :order_type, :product, :status, :user_order_action_status,
+    :completed, :deleted, :paid, :timestamp, :note, :tag, :order_id,
+    :actual_price, :ordered_price, :total_price,
+    :product_vat, :service_fee_vat, :total_vat,
+    :service_fee, :price_paid, :price_remaining,
+    :promo_discount, :order_discount, :total_discount,
+    :delivery_status, :estimated_preparation_time, :estimated_delivery_time
   ]
 end
 
 defmodule OrderSerializer.Order do
   @derive {Jason.Encoder, only: [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :billed,
+    :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
-
+    :discount, :estimated_preparation_time, :estimated_delivery_time,
+    :delivery
   ]}
   defstruct [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :billed,
+    :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
     :total_items,  :latest_order_datetime, :last_action_datetime, :active, :t,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
-    :pending_items, :called_items, :ready_items, :delivered_items, :sent_back_items
+    :pending_items, :called_items, :ready_items, :delivered_items, :sent_back_items,
+    :discount, :estimated_preparation_time, :estimated_delivery_time,
+    :delivery
   ]
 end
