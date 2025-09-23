@@ -53,7 +53,7 @@ defmodule OrderSerializer.Aggregator do
             %{
               name: "#{table_name} #{first_order.menu.title}",
               table_id: table_id,
-              order_datetime: first_order.order_datetime,
+              order_datetime: first_order.timestamp,
               no_of_guests: first_order.no_of_guests,
               items: Enum.map(items, fn {_order, item} -> item end)
             }
@@ -70,16 +70,16 @@ defmodule OrderSerializer.Aggregator do
   end
 
   def calculate_table_summary(table_orders) when is_list(table_orders) and table_orders != [] do
-    latest_order = Enum.max_by(table_orders, & &1.order_datetime)
+    latest_order = Enum.max_by(table_orders, & &1.timestamp)
 
     %{
       table_order: latest_order.table_order,
       menu: latest_order.menu,
       order_type: latest_order.order_type,
-      order_datetime: latest_order.order_datetime,
-      latest_order_datetime: latest_order.order_datetime,
+      order_datetime: latest_order.timestamp,
+      latest_order_datetime: latest_order.timestamp,
       last_action_datetime: get_last_action_datetime(table_orders),
-      total_amount: Enum.reduce(table_orders, 0, &(&2 + &1.total_amount)),
+      total_amount: Enum.reduce(table_orders, 0, &(&2 + &1.total)),
       total_items: Enum.reduce(table_orders, 0, &(&2 + &1.total_items)),
       pending_items: count_items_by_status(table_orders, "Pending"),
       called_items: count_items_by_status(table_orders, "Called"),
@@ -98,15 +98,12 @@ defmodule OrderSerializer.Aggregator do
     orders
     |> Enum.flat_map(fn order ->
       Enum.flat_map(order.items, fn item ->
-        case item.user_order_action_status do
-          %{"current" => %{"timestamp" => timestamp}} -> [timestamp]
-          _ -> []
-        end
+        [item.timestamp]
       end)
     end)
     |> case do
       [] ->
-        hd(orders).order_datetime
+        hd(orders).timestamp
       timestamps ->
         Enum.max(timestamps)
     end

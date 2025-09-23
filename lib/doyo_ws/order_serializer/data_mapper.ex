@@ -7,10 +7,10 @@ defmodule OrderSerializer.DataMapper do
       table_order: map_table(order_data["table_order"]),
       menu: map_menu(order_data["menu"]),
       order_type: order_data["order_type"],
-      order_datetime: parse_datetime(order_data["order_datetime"]),
+      timestamp: parse_datetime(order_data["timestamp"]),
       items: Enum.map(order_data["items"] || [], &map_order_item/1),
-      total_amount: order_data["total_amount"],
-      total_items: order_data["total_items"],
+      total: order_data["total"],
+      total_items: get_item_count(order_data["items"]),
       no_of_guests: order_data["no_of_guests"],
       completed: order_data["completed"] || false,
       subtotal: order_data["subtotal"],
@@ -22,7 +22,6 @@ defmodule OrderSerializer.DataMapper do
       latest_order_datetime: parse_datetime(order_data["timestamp"]),
       last_action_datetime: get_last_action_datetime(order_data["items"]),
       currency: order_data["currency"],
-      billed: order_data["billed"],
       pending_items: [],
       called_items: [],
       ready_items: [],
@@ -44,7 +43,7 @@ defmodule OrderSerializer.DataMapper do
       completed: item_data["completed"] || false,
       deleted: item_data["deleted"] || false,
       paid: item_data["paid"] || false,
-      timestamp: parse_datetime(item_data["timestamp"]),
+      timestamp: get_item_timestamp(item_data),
       note: item_data["note"],
       service_fee: item_data["service_fee"],
       product_vat: item_data["product_vat"],
@@ -53,7 +52,6 @@ defmodule OrderSerializer.DataMapper do
       tag: item_data["tag"],
       order_id: item_data["order_id"],
       order_type: item_data["order_type"],
-      estimated_preparation_time: item_data["estimated_preparation_time"],
       delivery_status: item_data["delivery_status"]
     }
   end
@@ -116,14 +114,28 @@ defmodule OrderSerializer.DataMapper do
     end
   end
 
-  defp parse_datetime(nil), do: nil
-  defp parse_datetime(datetime_str) when is_binary(datetime_str) do
-    case DateTime.from_iso8601(datetime_str) do
-      {:ok, datetime, _offset} -> datetime
-      _ -> nil
+  defp get_item_timestamp(item_data) do
+    case item_data do
+      %{"user_order_action_status" => %{"current" => %{"timestamp" => ts}}} ->
+        parse_datetime(ts)
+      _ -> {:error, "Missing item timestamp"}
     end
   end
-  defp parse_datetime(datetime), do: datetime
+
+  defp parse_datetime(nil), do: nil
+  defp parse_datetime(datetime_str) do
+    case DateTime.from_iso8601(datetime_str) do
+      {:ok, dt, _offset} -> {:ok, dt}
+      {:error, :missing_offset} ->
+        case NaiveDateTime.from_iso8601(datetime_str) do
+          {:ok, naive_dt} ->
+            {:ok, dt} = DateTime.from_naive(naive_dt, "Etc/UTC")
+            dt
+          error -> error
+        end
+      error -> error
+    end
+  end
 
   defp get_last_action_datetime(items) do
     items
@@ -140,6 +152,12 @@ defmodule OrderSerializer.DataMapper do
       timestamps ->
         Enum.max(timestamps)
     end
+  end
+
+  defp get_item_count(items) do
+    Enum.reduce(items, 0, fn item, acc ->
+      if item["completed"], do: acc, else: acc + 1
+    end)
   end
 
 end
