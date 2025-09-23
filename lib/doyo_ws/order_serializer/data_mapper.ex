@@ -17,6 +17,7 @@ defmodule OrderSerializer.DataMapper do
       vat: order_data["vat"],
       service_fee: order_data["service_fee"],
       flat_person_fee: order_data["flat_person_fee"],
+      home_delivery_fee: order_data["home_delivery_fee"],
       restaurant: order_data["restaurant"],
       order_counter: order_data["order_counter"],
       latest_order_datetime: parse_datetime(order_data["timestamp"]),
