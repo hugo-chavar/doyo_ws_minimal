@@ -1,12 +1,16 @@
 defmodule DoyoWs.RedisMessageRouter do
   require Logger
   alias DoyoWs.OrderService
+  alias DoyoWsWeb.Endpoint
 
   def route("orders", payload) do
     case JSON.decode(payload) do
-      {:ok, %{"order_id" => order_id, "data" => inner_data}} when is_binary(order_id) ->
-        topic = "order:#{order_id}"
-        DoyoWsWeb.Endpoint.broadcast(topic, "update", inner_data)
+      {
+        :ok,
+        %{"rid" => rid, "order_id" => order_id, "data" => inner_data}
+      } when is_binary(order_id) ->
+        topic = "order:#{rid}:#{order_id}"
+        broadcast_update(topic, inner_data)
         Logger.info("Broadcasted to #{topic}: #{inspect(inner_data)}")
 
       {:ok, decoded} ->
@@ -32,8 +36,7 @@ defmodule DoyoWs.RedisMessageRouter do
     Logger.info("Stub: Received #{type}_counter for restaurant #{restaurant_id}")
     {:ok, count} = DoyoWs.OrderItemCounter.get_counter(restaurant_id, type)
     topic = "counter:#{type}:#{restaurant_id}"
-    DoyoWsWeb.Endpoint.broadcast(topic, "update", count)
-    Logger.info("Broadcasted to #{topic}: #{count}")
+    broadcast_update(topic, count)
 
   end
 
@@ -43,26 +46,50 @@ defmodule DoyoWs.RedisMessageRouter do
       "order_items" => order_items
       }
     } = JSON.decode(payload)
+    order_ids = Enum.map(order_items, & &1["order_id"])
+    item_ids = Enum.flat_map(order_items, & &1["items"])
 
     restaurant_orders = OrderService.get_by_restaurant(restaurant_id)
-    # TODO
-    # order_ids = Enum.map(order_items, & &1["order_id"])
+    payload_orders =
+      restaurant_orders
+      |> Enum.filter(& &1["_id"] in order_ids)
 
-    #For each updated order/item
-    # get all items in a list and update the
-    # => get all restaurant orders (keep restaurant_orders), filter by ids => keep payload_orders in a variable,
-    # then filter the items per order
-    ### From here the logic can be extracted so it can be reused
-    # => group by table id (rem: all items from the same order have the same table_id) => this is for many orders "Call all" ..
-    # => broadcast to single tables the list of items
+    payload_orders_by_table =
+      payload_orders
+      |> OrderSerializer.Aggregator.group_orders_by_table()
 
-    # Filter restaurant_orders keeping changed table_id =>
-    # => group by table_id and broadcast to all tables order_serializer.serialize_all_tables
+    # update single table channels
+    Enum.each(payload_orders_by_table, fn {table_id, table_orders} ->
+      updated_items =
+        table_orders
+        |> Enum.flat_map(fn order ->
+          Enum.filter(order["items"], & &1["_id"] in item_ids)
+        end)
+      single_table_topic = "table:#{restaurant_id}:#{table_id}"
+      broadcast_update(single_table_topic, %{items: updated_items})
+    end)
 
-    # TODO: write instuctions for department details. ..
+    # update all tables channel
+    updated_tables = Enum.map(payload_orders_by_table, & elem(&1,0))
 
+    restaurant_orders_in_updated_tables =
+      restaurant_orders
+      |> Enum.filter(fn order -> order.table_order.id in updated_tables end)
 
+    updated_tables_detail = OrderSerializer.serialize_all_tables(restaurant_orders_in_updated_tables)
+    all_tables_topic = "tables:#{restaurant_id}"
+    broadcast_update(all_tables_topic, updated_tables_detail)
 
+    payload_orders_only_updated_items = Enum.map(payload_orders, fn order ->
+      %{order | items: Enum.filter(order.items, fn item ->
+        item._id in item_ids
+      end)}
+    end)
+    items_by_dept = OrderSerializer.Aggregator.group_items_by_department(payload_orders_only_updated_items)
+    Enum.each(items_by_dept, fn {dept_id, dept_detail} ->
+      dept_topic = "department:#{restaurant_id}:#{dept_id}"
+      broadcast_update(dept_topic, dept_detail)
+    end)
   end
 
   def route("update_table_guests", payload) do
@@ -72,5 +99,10 @@ defmodule DoyoWs.RedisMessageRouter do
 
   def route(channel, payload) do
     Logger.warning("No handler defined for channel #{channel}, payload: #{payload}")
+  end
+
+  defp broadcast_update(topic, payload) do
+    Endpoint.broadcast(topic, "update", payload)
+    Logger.info("Broadcasted to #{topic}: #{payload}")
   end
 end
