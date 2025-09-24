@@ -137,7 +137,8 @@ defmodule OrderSerializer.DataMapper do
   defp parse_datetime(nil), do: nil
   defp parse_datetime(datetime_str) do
     case DateTime.from_iso8601(datetime_str) do
-      {:ok, dt, _offset} -> {:ok, dt}
+      {:ok, dt, _offset} ->
+        dt
       {:error, :missing_offset} ->
         case NaiveDateTime.from_iso8601(datetime_str) do
           {:ok, naive_dt} ->
