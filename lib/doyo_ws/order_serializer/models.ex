@@ -42,17 +42,17 @@ defmodule OrderSerializer.Product do
 end
 
 defmodule OrderSerializer.OrderItem do
-  @derive {Jason.Encoder, except: [
-    :order_id, :order_type
-  ]}
+  @derive Jason.Encoder
   defstruct [
-    :_id, :order_type, :product, :status, :user_order_action_status,
-    :completed, :deleted, :paid, :timestamp, :note, :tag, :order_id,
+    :_id, :order_id, :order_type, :order_counter, :product,
+    :status, :user_order_action_status,
+    :completed, :deleted, :paid, :timestamp, :note, :tag,
     :actual_price, :ordered_price, :total_price,
     :product_vat, :service_fee_vat, :total_vat,
     :service_fee, :price_paid, :price_remaining,
     :promo_discount, :order_discount, :total_discount,
-    :delivery_status, :estimated_preparation_time, :estimated_delivery_time
+    :delivery_status, :estimated_preparation_time, :estimated_delivery_time,
+    # :round, :sync_id, :table_info
   ]
 end
 
