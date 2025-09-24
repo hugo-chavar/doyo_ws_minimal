@@ -40,7 +40,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
   end
 
-  def route("items_update", payload) do
+  def route("order_items_update", payload) do
     {:ok, %{
       "rid" => restaurant_id,
       "order_items" => order_items
