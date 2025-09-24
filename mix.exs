@@ -49,7 +49,6 @@ defmodule DoyoWs.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
-      {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:redix, ">= 1.5.2"},
       {:mox, "~> 1.2"},

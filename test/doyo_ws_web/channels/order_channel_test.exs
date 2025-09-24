@@ -78,7 +78,7 @@ defmodule DoyoWsWeb.OrderChannelTest do
 
   test "after_join pushes update when Redis has cached JSON", _ do
     payload = %{"id" => "60c72b1f9b3e6c001c8c0b1a", "status" => "ready"}
-    json_payload = Jason.encode!(payload)
+    json_payload = JSON.encode!(payload)
 
     RedisMock
     |> expect(:get, fn "json_order_60c72b1f9b3e6c001c8c0b1a" -> {:ok, json_payload} end)

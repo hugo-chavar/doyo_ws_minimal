@@ -6,7 +6,7 @@ defmodule DoyoWs.TableReservationService do
     case @redis_client.hvals("table_reservations_#{restaurant_id}") do
       {:ok, table_reservations_list} ->
         table_reservations_list
-        |> Enum.map(&Jason.decode/1)
+        |> Enum.map(&JSON.decode/1)
         |> Enum.filter(fn
           {:ok, _table_reservations} -> true
           {:error, _} -> false

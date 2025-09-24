@@ -1,15 +1,15 @@
 defmodule OrderSerializer.Department do
-  @derive {Jason.Encoder, only: [:id, :name]}
+  @derive {JSON.Encoder, only: [:id, :name]}
   defstruct [:id, :name]
 end
 
 defmodule OrderSerializer.Table do
-  @derive {Jason.Encoder, only: [:id, :name]}
+  @derive {JSON.Encoder, only: [:id, :name]}
   defstruct [:id, :name]
 end
 
 defmodule OrderSerializer.Menu do
-  @derive {Jason.Encoder, only: [
+  @derive {JSON.Encoder, only: [
     :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
     :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat,
     :estimated_preparation_time, :estimated_delivery_time
@@ -22,17 +22,17 @@ defmodule OrderSerializer.Menu do
 end
 
 defmodule OrderSerializer.Category do
-  @derive {Jason.Encoder, only: [:id, :name, :department]}
+  @derive {JSON.Encoder, only: [:id, :name, :department]}
   defstruct [:id, :name, :department]
 end
 
 defmodule OrderSerializer.Restaurant do
-  @derive {Jason.Encoder, only: [:id, :name, :currency]}
+  @derive {JSON.Encoder, only: [:id, :name, :currency]}
   defstruct [:id, :name, :currency]
 end
 
 defmodule OrderSerializer.Product do
-  @derive {Jason.Encoder, except: [
+  @derive {JSON.Encoder, except: [
     :promotion
   ]}
   defstruct [
@@ -42,7 +42,7 @@ defmodule OrderSerializer.Product do
 end
 
 defmodule OrderSerializer.OrderItem do
-  @derive Jason.Encoder
+  @derive JSON.Encoder
   defstruct [
     :_id, :order_id, :order_type, :order_counter, :product,
     :status, :user_order_action_status,
@@ -57,7 +57,7 @@ defmodule OrderSerializer.OrderItem do
 end
 
 defmodule OrderSerializer.Order do
-  @derive {Jason.Encoder, only: [
+  @derive {JSON.Encoder, only: [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
     :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
