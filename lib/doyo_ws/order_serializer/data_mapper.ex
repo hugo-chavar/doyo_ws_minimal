@@ -31,7 +31,7 @@ defmodule OrderSerializer.DataMapper do
       delivered_items: [],
       sent_back_items: [],
       active: order_data["active"],
-      t: order_data["t"]
+      t: order_data["t"] || "Other"
     }
   end
 
@@ -59,6 +59,7 @@ defmodule OrderSerializer.DataMapper do
       order_discount: item_data["order_discount"] || 0.0,
       total_discount: item_data["total_discount"] || 0.0,
       tag: item_data["tag"],
+      round: item_data["round"],
       order_id: item_data["order_id"],
       order_type: item_data["order_type"],
       order_counter: item_data["order_counter"],
