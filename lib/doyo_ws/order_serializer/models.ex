@@ -45,7 +45,7 @@ defmodule OrderSerializer.OrderItem do
   @derive JSON.Encoder
   defstruct [
     :_id, :order_id, :order_type, :order_counter, :product,
-    :status, :user_order_action_status, :round,
+    :status, :user_order_action_status, :round, :is_new,
     :completed, :deleted, :paid, :timestamp, :note, :tag,
     :actual_price, :ordered_price, :total_price,
     :product_vat, :service_fee_vat, :total_vat,

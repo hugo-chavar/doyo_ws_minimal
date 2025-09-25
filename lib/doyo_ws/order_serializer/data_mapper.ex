@@ -1,5 +1,6 @@
 defmodule OrderSerializer.DataMapper do
   alias OrderSerializer.{Order, OrderItem, Product, Category, Department, Table, Menu}
+  require Logger
 
   def map_order(order_data) when is_map(order_data) do
     %Order{
@@ -47,6 +48,7 @@ defmodule OrderSerializer.DataMapper do
       deleted: item_data["deleted"] || false,
       paid: item_data["paid"] || false,
       timestamp: get_item_timestamp(item_data),
+      is_new: item_is_new(item_data),
       note: item_data["note"] || "",
       service_fee: item_data["service_fee"] || 0.0,
       service_fee_vat: item_data["service_fee_vat"] || 0.0,
@@ -128,6 +130,7 @@ defmodule OrderSerializer.DataMapper do
   end
 
   defp get_item_timestamp(item_data) do
+    Logger.info("get_item_timestamp. #{inspect(item_data)}")
     case item_data do
       %{"user_order_action_status" => %{"current" => %{"timestamp" => ts}}} ->
         parse_datetime(ts)
@@ -135,15 +138,33 @@ defmodule OrderSerializer.DataMapper do
     end
   end
 
+  defp item_is_new(item_data) do
+    cond do
+      item_data["user_order_action_status"]["history"] != nil ->
+        false
+      get_item_status(item_data) != "Pending" ->
+        false
+      item_data["completed"] or item_data["deleted"] ->
+        false
+      true ->
+        item_timestamp = get_item_timestamp(item_data)
+        {:ok, current_datetime} = DateTime.now("Etc/UTC")
+        past_datetime = DateTime.add(current_datetime, -15, :minute)
+        DateTime.compare(item_timestamp, past_datetime) == :gt
+    end
+  end
+
   defp parse_datetime(nil), do: nil
   defp parse_datetime(datetime_str) do
     case DateTime.from_iso8601(datetime_str) do
       {:ok, dt, _offset} ->
+        Logger.info("DateTime.from_iso8601. #{datetime_str}")
         dt
       {:error, :missing_offset} ->
         case NaiveDateTime.from_iso8601(datetime_str) do
           {:ok, naive_dt} ->
             {:ok, dt} = DateTime.from_naive(naive_dt, "Etc/UTC")
+            Logger.info("DateTime.from_naive. #{datetime_str}")
             dt
           error -> error
         end
@@ -159,7 +180,6 @@ defmodule OrderSerializer.DataMapper do
         _ -> []
       end
     end)
-
     |> case do
       [] ->
         nil
