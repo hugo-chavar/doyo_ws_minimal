@@ -29,7 +29,6 @@ defmodule DoyoWsWeb.OrderChannel do
 
   @impl true
   def handle_info({:after_join, restaurant_id, order_id}, socket) do
-    # Fetch cached order from Redis
     order = DoyoWs.OrderService.get_by_order_id(restaurant_id, order_id)
     push(socket, "update", order)
     {:noreply, socket}
