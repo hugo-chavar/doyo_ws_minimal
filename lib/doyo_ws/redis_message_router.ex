@@ -11,8 +11,11 @@ defmodule DoyoWs.RedisMessageRouter do
       } when is_binary(order_id) ->
         topic = "order:#{rid}:#{order_id}"
         broadcast_update(topic, inner_data)
-        Logger.info("Broadcasted to #{topic}: #{inspect(inner_data)}")
-
+      {
+        :ok,
+        %{"rid" => rid, "order_id" => order_id}
+      } when is_binary(order_id) ->
+        broadcast_order_update(rid, order_id)
       {:ok, decoded} ->
         Logger.warning("Received orders message without order_id: #{inspect(decoded)}")
 
@@ -21,15 +24,6 @@ defmodule DoyoWs.RedisMessageRouter do
     end
   end
 
-  def route("table_details", payload) do
-    # Add logic for table_details later
-    Logger.info("Stub: Received table_details payload #{payload}")
-  end
-
-  def route("department_details", payload) do
-    # Add logic for department_details later
-    Logger.info("Stub: Received department_details payload #{payload}")
-  end
 
   def route("counter_" <> type, payload) do
     {:ok, %{"rid" => restaurant_id}} = JSON.decode(payload)
@@ -52,21 +46,28 @@ defmodule DoyoWs.RedisMessageRouter do
     restaurant_orders = OrderService.get_by_restaurant(restaurant_id)
     payload_orders =
       restaurant_orders
-      |> Enum.filter(& &1["_id"] in order_ids)
+      |> Enum.filter(& &1._id in order_ids)
 
     payload_orders_by_table =
       payload_orders
       |> OrderSerializer.Aggregator.group_orders_by_table()
+
+    # update order status channel
+    Enum.each(payload_orders, fn order ->
+      broadcast_order_update(restaurant_id, order._id, order)
+    end)
 
     # update single table channels
     Enum.each(payload_orders_by_table, fn {table_id, table_orders} ->
       updated_items =
         table_orders
         |> Enum.flat_map(fn order ->
-          Enum.filter(order["items"], & &1["_id"] in item_ids)
+          Enum.filter(order.items, & &1._id in item_ids)
         end)
-      single_table_topic = "table:#{restaurant_id}:#{table_id}"
-      broadcast_update(single_table_topic, %{items: updated_items})
+      if not Enum.empty?(updated_items) do
+        single_table_topic = "table:#{restaurant_id}:#{table_id}"
+        broadcast_update(single_table_topic, %{items: updated_items})
+      end
     end)
 
     # update all tables channel
@@ -104,5 +105,22 @@ defmodule DoyoWs.RedisMessageRouter do
   defp broadcast_update(topic, payload) do
     Endpoint.broadcast(topic, "update", payload)
     Logger.info("Broadcasted to #{topic}: #{payload}")
+  end
+
+  defp broadcast_order_update(rid, order_id) do
+    order = OrderService.get_by_order_id(rid, order_id)
+    broadcast_order_update(rid, order_id, order)
+  end
+
+  defp broadcast_order_update(rid, order_id, order) do
+    topic = "order:#{rid}:#{order_id}"
+    broadcast_update(topic, order)
+    if order[:t] != "Other" do
+      type = String.downcase(order[:t])
+      Logger.info("Update counter #{type} for restaurant #{rid}")
+      {:ok, count} = DoyoWs.OrderItemCounter.get_counter(rid, type)
+      topic = "counter:#{type}:#{rid}"
+      broadcast_update(topic, count)
+    end
   end
 end
