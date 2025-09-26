@@ -23,4 +23,12 @@ defmodule DoyoWs.TableReservationService do
     |> Enum.filter(fn reservation -> reservation["table_order"]["id"] == table_id end)
   end
 
+  def get_single_table(restaurant_id, table_id) do
+
+    case get_by_table(restaurant_id, table_id) do
+      [] -> %{}
+      [hd | _tl] -> hd
+    end
+
+  end
 end

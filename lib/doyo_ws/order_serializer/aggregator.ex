@@ -74,8 +74,17 @@ defmodule OrderSerializer.Aggregator do
     end)
   end
 
+  defp get_guests(restaurant_id, table_id) do
+    case DoyoWs.TableReservationService.get_single_table(restaurant_id, table_id) do
+      %{} -> 0
+      reservation -> reservation["guests"]
+    end
+  end
+
   def calculate_table_summary(table_orders) when is_list(table_orders) and table_orders != [] do
     latest_order = Enum.max_by(table_orders, & &1.timestamp)
+    has_new_orders = contains_new_orders(table_orders)
+    guests = get_guests(latest_order.restaurant["id"], latest_order.table_order.id)
 
     %{
       table_order: latest_order.table_order,
@@ -90,8 +99,8 @@ defmodule OrderSerializer.Aggregator do
       called_items: count_items_by_status(table_orders, "Called"),
       ready_items: count_items_by_status(table_orders, "Ready"),
       delivered_items: count_items_by_status(table_orders, "Delivered"),
-      no_of_guests: 0, # TODO: This would need business logic
-      new_order: false, # TODO: This would need business logic
+      no_of_guests: guests,
+      new_order: has_new_orders,
       billed: latest_order.billed || false # TODO: Check this
     }
   end
@@ -138,4 +147,21 @@ defmodule OrderSerializer.Aggregator do
     end)
   end
   defp count_items_in_status_group(_), do: 0
+
+  defp contains_new_orders(orders) when is_list(orders) do
+
+    {:ok, current_datetime} = DateTime.now("Etc/UTC")
+    past_datetime = DateTime.add(current_datetime, -10, :minute)
+
+
+    orders
+    |> Enum.filter(fn order ->
+        DateTime.compare(order.timestamp, past_datetime) == :gt and Enum.all?(order.items, fn item ->
+          item.is_new
+        end)
+      end)
+    |> Enum.any?()
+  end
+
+
 end
