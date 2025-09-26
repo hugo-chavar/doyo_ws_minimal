@@ -149,7 +149,7 @@ defmodule OrderSerializer.DataMapper do
       true ->
         item_timestamp = get_item_timestamp(item_data)
         {:ok, current_datetime} = DateTime.now("Etc/UTC")
-        past_datetime = DateTime.add(current_datetime, -15, :minute)
+        past_datetime = DateTime.add(current_datetime, -30, :minute)
         DateTime.compare(item_timestamp, past_datetime) == :gt
     end
   end
