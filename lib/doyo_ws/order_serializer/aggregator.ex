@@ -45,7 +45,6 @@ defmodule OrderSerializer.Aggregator do
         status_key =
           status
           |> String.downcase()
-          |> String.to_existing_atom()
           |> then(&:"#{&1}_items")
 
         if Map.has_key?(acc, status_key) do
@@ -85,6 +84,14 @@ defmodule OrderSerializer.Aggregator do
     latest_order = Enum.max_by(table_orders, & &1.timestamp)
     has_new_orders = contains_new_orders(table_orders)
     guests = get_guests(latest_order.restaurant["id"], latest_order.table_order.id)
+    total_amount = table_orders
+      |> Enum.map(& &1.total)
+      |> Enum.sum()
+      |> Float.round(2)
+
+    total_items = table_orders
+      |> Enum.map(& &1.total_items)
+      |> Enum.sum()
 
     %{
       table_order: latest_order.table_order,
@@ -93,8 +100,8 @@ defmodule OrderSerializer.Aggregator do
       order_datetime: latest_order.timestamp,
       latest_order_datetime: latest_order.timestamp,
       last_action_datetime: get_last_action_datetime(table_orders),
-      total_amount: Enum.reduce(table_orders, 0, &(&2 + &1.total)),
-      total_items: Enum.reduce(table_orders, 0, &(&2 + &1.total_items)),
+      total_amount: total_amount,
+      total_items: total_items,
       pending_items: count_items_by_status(table_orders, "Pending"),
       called_items: count_items_by_status(table_orders, "Called"),
       ready_items: count_items_by_status(table_orders, "Ready"),

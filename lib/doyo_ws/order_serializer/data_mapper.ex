@@ -42,24 +42,24 @@ defmodule OrderSerializer.DataMapper do
       product: map_product(item_data["product"]),
       status: get_item_status(item_data),
       user_order_action_status: item_data["user_order_action_status"],
-      actual_price: item_data["actual_price"] || 0.0,
-      ordered_price: item_data["ordered_price"] || 0.0,
+      actual_price: item_data["actual_price"] || 0.0 |> Float.round(2),
+      ordered_price: item_data["ordered_price"] || 0.0 |> Float.round(2),
       completed: item_data["completed"] || false,
       deleted: item_data["deleted"] || false,
       paid: item_data["paid"] || false,
       timestamp: get_item_timestamp(item_data),
       is_new: item_is_new(item_data),
       note: item_data["note"] || "",
-      service_fee: item_data["service_fee"] || 0.0,
-      service_fee_vat: item_data["service_fee_vat"] || 0.0,
-      product_vat: item_data["product_vat"] || 0.0,
-      total_vat: item_data["total_vat"] || 0.0,
-      total_price: item_data["total_price"] || 0.0,
-      price_paid: item_data["price_paid"] || 0.0,
-      price_remaining: item_data["price_remaining"] || 0.0,
-      promo_discount: item_data["promo_discount"] || 0.0,
-      order_discount: item_data["order_discount"] || 0.0,
-      total_discount: item_data["total_discount"] || 0.0,
+      service_fee: item_data["service_fee"] || 0.0 |> Float.round(2),
+      service_fee_vat: item_data["service_fee_vat"] || 0.0 |> Float.round(2),
+      product_vat: item_data["product_vat"] || 0.0 |> Float.round(2),
+      total_vat: item_data["total_vat"] || 0.0 |> Float.round(2),
+      total_price: item_data["total_price"] || 0.0 |> Float.round(2),
+      price_paid: item_data["price_paid"] || 0.0 |> Float.round(2),
+      price_remaining: item_data["price_remaining"] || 0.0 |> Float.round(2),
+      promo_discount: item_data["promo_discount"] || 0.0 |> Float.round(2),
+      order_discount: item_data["order_discount"] || 0.0 |> Float.round(2),
+      total_discount: item_data["total_discount"] || 0.0 |> Float.round(2),
       tag: item_data["tag"],
       round: item_data["round"],
       order_id: item_data["order_id"],
@@ -144,7 +144,7 @@ defmodule OrderSerializer.DataMapper do
         false
       get_item_status(item_data) != "Pending" ->
         false
-      item_data["completed"] or item_data["deleted"] ->
+      item_data["completed"] || false or item_data["deleted"] || false ->
         false
       true ->
         item_timestamp = get_item_timestamp(item_data)
