@@ -8,7 +8,7 @@ defmodule DoyoWsWeb.TableChannel do
     case String.split(rest, ":", parts: 2) do
       [restaurant_id, table_id] ->
         if valid_params?(restaurant_id, table_id) do
-          # TODO: Check if restaurant exists and user has permission
+          # TODO: auth. Check if restaurant exists and user has permission
           {rid, _} = Integer.parse(restaurant_id)
           {tid, _} = Integer.parse(table_id)
           send(self(), {:after_table_join, rid, tid})

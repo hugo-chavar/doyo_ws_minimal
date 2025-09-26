@@ -6,7 +6,7 @@ defmodule DoyoWsWeb.TablesChannel do
   @impl true
   def join("tables:" <> restaurant_id, _params, socket) do
       if valid_params?(restaurant_id) do
-        # TODO: Check if restaurant exists and user has permission
+        # TODO: auth. Check if restaurant exists and user has permission
         {rid, _} = Integer.parse(restaurant_id)
         send(self(), {:after_tables_join, rid})
         {:ok, socket}

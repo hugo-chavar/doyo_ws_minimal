@@ -7,7 +7,7 @@ defmodule DoyoWsWeb.CounterChannel do
     case String.split(rest, ":", parts: 2) do
       [type, restaurant_id] ->
         if valid_params?(restaurant_id, type) do
-          # TODO: Check if restaurant exists and user has permission
+          # TODO: auth. Check if restaurant exists and user has permission
           {rid, _} = Integer.parse(restaurant_id)
           send(self(), {:after_counter_join, rid, type})
           {:ok, socket}

@@ -8,7 +8,7 @@ defmodule DoyoWsWeb.DepartmentChannel do
     case String.split(rest, ":", parts: 2) do
       [restaurant_id, department_id] ->
         if valid_params?(restaurant_id, department_id) do
-          # TODO: Check if restaurant exists and user has permission
+          # TODO: auth. Check if restaurant exists and user has permission
           {rid, _} = Integer.parse(restaurant_id)
           {did, _} = Integer.parse(department_id)
           send(self(), {:after_department_join, rid, did})
