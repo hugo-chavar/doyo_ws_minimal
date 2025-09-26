@@ -6,7 +6,7 @@ defmodule DoyoWs.OrderItemCounter do
       DoyoWs.OrderService.get_by_restaurant(restaurant_id)
       |> Enum.reduce(0, fn order, total_count ->
         case order do
-          %Order{t: type, active: true, completed: false, items: items} ->
+          %Order{t: type, completed: false, items: items} ->
             if String.downcase(type) == String.downcase(counter_type) do
               item_count = Enum.count(items, fn item ->
                 not item.completed
