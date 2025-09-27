@@ -108,7 +108,7 @@ defmodule OrderSerializer.Aggregator do
       delivered_items: count_items_by_status(table_orders, "Delivered"),
       no_of_guests: guests,
       new_order: has_new_orders,
-      billed: latest_order.billed || false # TODO: Check this
+      billed: Enum.all?(table_orders, & &1.billed)
     }
   end
 
