@@ -104,7 +104,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
   defp broadcast_update(topic, payload) do
     Endpoint.broadcast(topic, "update", payload)
-    Logger.info("Broadcasted to #{topic}: #{payload}")
+    Logger.info("Broadcasted to #{topic}")
   end
 
   defp broadcast_order_update(rid, order_id) do
@@ -115,8 +115,8 @@ defmodule DoyoWs.RedisMessageRouter do
   defp broadcast_order_update(rid, order_id, order) do
     topic = "order:#{rid}:#{order_id}"
     broadcast_update(topic, order)
-    if order[:t] != "Other" do
-      type = String.downcase(order[:t])
+    if order.t != "Other" do
+      type = String.downcase(order.t)
       Logger.info("Update counter #{type} for restaurant #{rid}")
       {:ok, count} = DoyoWs.OrderItemCounter.get_counter(rid, type)
       topic = "counter:#{type}:#{rid}"
