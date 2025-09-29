@@ -17,6 +17,7 @@ defmodule OrderSerializer.DataMapper do
       billed: Enum.all?(order_data["items"], fn item ->
         item["completed"] || false or item["deleted"] || false
       end),
+      discount: (order_data["discount"] || 0.0) |> Float.round(2),
       subtotal: (order_data["subtotal"] || 0.0) |> Float.round(2),
       vat: (order_data["vat"] || 0.0) |> Float.round(2),
       service_fee: (order_data["service_fee"] || 0.0) |> Float.round(2),
@@ -29,11 +30,7 @@ defmodule OrderSerializer.DataMapper do
       estimated_delivery_time: order_data["estimated_delivery_time"],
       latest_order_datetime: parse_datetime(order_data["timestamp"]),
       last_action_datetime: get_last_action_datetime(order_data["items"]),
-      pending_items: [],
-      called_items: [],
-      ready_items: [],
-      delivered_items: [],
-      sent_back_items: [],
+      item_classification: classify_items(order_data["items"]),
       active: order_data["active"],
       t: order_data["t"] || "Other"
     }
@@ -183,18 +180,91 @@ defmodule OrderSerializer.DataMapper do
         _ -> []
       end
     end)
-    |> case do
-      [] ->
-        nil
-      timestamps ->
-        Enum.max(timestamps)
-    end
+    |> get_max_timestamp
   end
 
   defp get_item_count(items) do
     Enum.reduce(items, 0, fn item, acc ->
       if item["completed"], do: acc, else: acc + 1
     end)
+  end
+
+  defp get_max_timestamp([]), do: nil
+  defp get_max_timestamp(timestamps) do
+    Enum.max(timestamps)
+  end
+
+  defp classify_items(items) do
+    initial_state = %{
+      "Called" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Delivered" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Pending" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Paid" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Ready" => %{count: 0, earliest_timestamp: nil, items: []}
+    }
+
+    Enum.reduce(items, initial_state, fn item, acc ->
+      process_item(item, acc)
+    end)
+  end
+
+  defp process_item(item, acc) do
+    current_status = item["user_order_action_status"]["current"]["status"]
+
+    # Update current status count and items
+    acc = update_current_status(acc, current_status, item)
+
+    # Update earliest timestamps from history (including current)
+    update_earliest_timestamps_from_history(acc, item)
+  end
+
+  defp update_current_status(acc, status, item) do
+    case acc[status] do
+      %{count: count, items: items} = status_data ->
+        Map.put(acc, status, %{
+          status_data |
+          count: count + 1,
+          items: [item | items]
+        })
+      nil -> acc # Status not in our classification map
+    end
+  end
+
+  defp update_earliest_timestamps_from_history(acc, item) do
+    status_history =
+      [item["user_order_action_status"]["current"]] ++
+      (item["user_order_action_status"]["history"] || [])
+
+    Enum.reduce(status_history, acc, fn status_entry, acc ->
+      status = status_entry["status"]
+      timestamp = status_entry["timestamp"]
+
+      if status && timestamp && acc[status] do
+        new_dt = parse_datetime(timestamp)
+        update_earliest_timestamp(acc, status, new_dt)
+      else
+        acc
+      end
+    end)
+  end
+
+  defp update_earliest_timestamp(acc, status, new_dt) do
+    %{earliest_timestamp: current_timestamp} = acc[status]
+
+    new_earliest =
+      case current_timestamp do
+        nil -> new_dt
+        current_dt ->
+          # Compare timestamps to find the earliest
+
+          if DateTime.compare(new_dt, current_dt) == :lt do
+            new_dt
+          else
+            current_dt
+          end
+      end
+
+    Map.put(acc, status, %{acc[status] | earliest_timestamp: new_earliest})
   end
 
 end
