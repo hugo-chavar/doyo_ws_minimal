@@ -124,8 +124,7 @@ defmodule OrderSerializer.DataMapper do
   defp get_item_status(item_data) do
     case item_data do
       %{"user_order_action_status" => %{"current" => %{"status" => status}}} -> status
-      %{"status" => status} -> status
-      _ -> "Pending" # default status
+      _ -> {:error, "Status not found"}
     end
   end
 
