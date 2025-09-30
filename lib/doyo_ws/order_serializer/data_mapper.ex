@@ -179,10 +179,10 @@ defmodule OrderSerializer.DataMapper do
       user_order_action_status = item["user_order_action_status"]
 
       timestamps = []
-      |> check_current_status(user_order_action_status, "DELIVERED")
-      |> check_history_status(user_order_action_status, "DELIVERED")
-      |> check_current_status(user_order_action_status, "CALLED")
-      |> check_history_status(user_order_action_status, "CALLED")
+      |> check_current_status(user_order_action_status, "Delivered")
+      |> check_history_status(user_order_action_status, "Delivered")
+      |> check_current_status(user_order_action_status, "Called")
+      |> check_history_status(user_order_action_status, "Called")
 
       timestamps
     end)
