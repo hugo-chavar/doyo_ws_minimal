@@ -1,5 +1,6 @@
 defmodule OrderSerializer.Aggregator do
   alias OrderSerializer.Specifications
+  alias OrderSerializer.Order
 
   def filter_orders(orders, specification) do
     Enum.filter(orders, fn order ->
@@ -93,6 +94,8 @@ defmodule OrderSerializer.Aggregator do
       |> Enum.map(& &1.total_items)
       |> Enum.sum()
 
+    item_classification_summary = summarize_item_classifications(table_orders)
+
     %{
       table_order: latest_order.table_order,
       menu: latest_order.menu,
@@ -102,10 +105,15 @@ defmodule OrderSerializer.Aggregator do
       last_action_datetime: get_last_action_datetime(table_orders),
       total_amount: total_amount,
       total_items: total_items,
-      pending_items: count_items_by_status(table_orders, "Pending"),
-      called_items: count_items_by_status(table_orders, "Called"),
-      ready_items: count_items_by_status(table_orders, "Ready"),
-      delivered_items: count_items_by_status(table_orders, "Delivered"),
+      pending_items: item_classification_summary["Pending"].count,
+      called_items: item_classification_summary["Called"].count,
+      called_items_start_time: item_classification_summary["Called"].earliest_timestamp,
+      ready_items: item_classification_summary["Ready"].count,
+      ready_items_start_time: item_classification_summary["Ready"].earliest_timestamp,
+      delivered_items: item_classification_summary["Delivered"].count,
+      delivered_items_start_time: item_classification_summary["Delivered"].earliest_timestamp,
+      paid_items: item_classification_summary["Paid"].count,
+      paid_items_start_time: item_classification_summary["Paid"].earliest_timestamp,
       no_of_guests: guests,
       new_order: has_new_orders,
       billed: Enum.all?(table_orders, & &1.billed)
@@ -117,26 +125,11 @@ defmodule OrderSerializer.Aggregator do
   defp get_last_action_datetime(orders) do
     orders
     |> Enum.flat_map(fn order ->
-      Enum.flat_map(order.items, fn item ->
-        [item.timestamp]
-      end)
+      [order.last_action_datetime]
     end)
-    |> case do
-      [] ->
-        hd(orders).timestamp
-      timestamps ->
-        Enum.max(timestamps)
-    end
+    |> Enum.max
   end
 
-  defp count_items_by_status(orders, status) do
-    orders
-    |> Enum.flat_map(& &1.items)
-    |> Enum.filter(fn item ->
-      item.status == status and not item.deleted
-    end)
-    |> length()
-  end
 
   def calculate_department_totals(department_data) do
     %{
@@ -170,5 +163,55 @@ defmodule OrderSerializer.Aggregator do
     |> Enum.any?()
   end
 
+  defp summarize_item_classifications(orders) when is_list(orders) do
+    initial_state = %{
+      "Called" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Delivered" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Pending" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Paid" => %{count: 0, earliest_timestamp: nil, items: []},
+      "Ready" => %{count: 0, earliest_timestamp: nil, items: []}
+    }
+
+    Enum.reduce(orders, initial_state, fn order, acc ->
+      case order do
+        %Order{item_classification: classification} when is_map(classification) ->
+          merge_classifications(acc, classification)
+        _ ->
+          acc # Skip if no classification or invalid format
+      end
+    end)
+  end
+
+  defp merge_classifications(acc, classification) do
+    Enum.reduce(Map.keys(acc), acc, fn status, acc ->
+      acc_status_data = acc[status]
+      classification_status_data = classification[status]
+
+      case classification_status_data do
+        %{count: count, earliest_timestamp: timestamp, items: items} ->
+          merged_count = acc_status_data.count + count
+
+          merged_items = acc_status_data.items ++ items
+
+          merged_earliest_timestamp =
+            case {acc_status_data.earliest_timestamp, timestamp} do
+              {nil, nil} -> nil
+              {nil, t} -> t
+              {acc_t, nil} -> acc_t
+              {acc_t, new_t} ->
+                if DateTime.compare(new_t, acc_t) == :lt, do: new_t, else: acc_t
+            end
+
+          Map.put(acc, status, %{
+            count: merged_count,
+            earliest_timestamp: merged_earliest_timestamp,
+            items: merged_items
+          })
+
+        _ ->
+          acc # Status not present in classification, keep accumulator
+      end
+    end)
+  end
 
 end
