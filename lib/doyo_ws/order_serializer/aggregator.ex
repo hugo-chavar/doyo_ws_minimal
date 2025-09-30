@@ -86,7 +86,7 @@ defmodule OrderSerializer.Aggregator do
     has_new_orders = contains_new_orders(table_orders)
     guests = get_guests(latest_order.restaurant["id"], latest_order.table_order.id)
     total_amount = table_orders
-      |> Enum.map(& &1.total)
+      |> Enum.map(& &1.unbilled_amount)
       |> Enum.sum()
       |> Float.round(2)
 

@@ -3,6 +3,8 @@ defmodule OrderSerializer.DataMapper do
   require Logger
 
   def map_order(order_data) when is_map(order_data) do
+    incomplete_items = order_data["items"] |> Enum.reject(&(&1["completed"] || &1["deleted"]))
+
     %Order{
       _id: order_data["_id"],
       table_order: map_table(order_data["table_order"]),
@@ -11,12 +13,13 @@ defmodule OrderSerializer.DataMapper do
       timestamp: parse_datetime(order_data["timestamp"]),
       items: Enum.map(order_data["items"] || [], &map_order_item/1),
       total: float_round(order_data["total"]),
-      total_items: get_item_count(order_data["items"]),
+      total_items: length(incomplete_items),
       no_of_guests: order_data["no_of_guests"],
       completed: order_data["completed"] || false,
-      billed: Enum.all?(order_data["items"], fn item ->
-        item["completed"] || false or item["deleted"] || false
-      end),
+      billed: Enum.empty?(incomplete_items),
+      unbilled_amount: incomplete_items
+        |> Enum.map(& &1["ordered_price"])
+        |> Enum.sum(),
       discount: float_round(order_data["discount"]),
       subtotal: float_round(order_data["subtotal"]),
       vat: float_round(order_data["vat"]),
@@ -143,7 +146,7 @@ defmodule OrderSerializer.DataMapper do
         false
       get_item_status(item_data) != "Pending" ->
         false
-      item_data["completed"] || false or item_data["deleted"] || false ->
+      item_data["completed"] || item_data["deleted"] ->
         false
       true ->
         item_timestamp = get_item_timestamp(item_data)
@@ -180,12 +183,6 @@ defmodule OrderSerializer.DataMapper do
       end
     end)
     |> get_max_timestamp
-  end
-
-  defp get_item_count(items) do
-    Enum.reduce(items, 0, fn item, acc ->
-      if item["completed"], do: acc, else: acc + 1
-    end)
   end
 
   defp get_max_timestamp([]), do: nil
