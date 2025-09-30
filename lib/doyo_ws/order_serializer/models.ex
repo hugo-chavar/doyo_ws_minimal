@@ -67,7 +67,7 @@ defmodule OrderSerializer.Order do
   defstruct [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
     :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
-    :total_items,  :latest_order_datetime, :last_action_datetime, :active, :t,
+    :total_items, :last_action_datetime, :active, :t,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee, :discount,
     :estimated_preparation_time, :estimated_delivery_time, :delivery,
     :item_classification, :unbilled_amount

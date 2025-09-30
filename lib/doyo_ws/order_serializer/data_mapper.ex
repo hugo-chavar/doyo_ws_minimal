@@ -31,7 +31,6 @@ defmodule OrderSerializer.DataMapper do
       mode_of_payment: order_data["mode_of_payment"],
       estimated_preparation_time: order_data["estimated_preparation_time"],
       estimated_delivery_time: order_data["estimated_delivery_time"],
-      latest_order_datetime: parse_datetime(order_data["timestamp"]),
       last_action_datetime: get_last_action_datetime(order_data["items"]),
       item_classification: classify_items(order_data["items"]),
       active: order_data["active"],
@@ -177,18 +176,42 @@ defmodule OrderSerializer.DataMapper do
   defp get_last_action_datetime(items) do
     items
     |> Enum.flat_map(fn item ->
-      case item["user_order_action_status"] do
-        %{"current" => %{"timestamp" => timestamp}} -> [parse_datetime(timestamp)]
-        _ -> []
-      end
+      user_order_action_status = item["user_order_action_status"]
+
+      timestamps = []
+      |> check_current_status(user_order_action_status, "DELIVERED")
+      |> check_history_status(user_order_action_status, "DELIVERED")
+      |> check_current_status(user_order_action_status, "CALLED")
+      |> check_history_status(user_order_action_status, "CALLED")
+
+      timestamps
     end)
-    |> get_max_timestamp
+    |> get_max_timestamp()
+  end
+
+  defp check_current_status(timestamps, user_order_action_status, target_status) do
+    case user_order_action_status do
+      %{"current" => %{"status" => ^target_status, "timestamp" => timestamp}} ->
+        [parse_datetime(timestamp) | timestamps]
+      _ ->
+        timestamps
+    end
+  end
+
+  defp check_history_status(timestamps, user_order_action_status, target_status) do
+    case user_order_action_status do
+      %{"history" => history} when is_list(history) ->
+        case Enum.find(history, &(&1["status"] == target_status)) do
+          %{"timestamp" => timestamp} -> [parse_datetime(timestamp) | timestamps]
+          nil -> timestamps
+        end
+      _ ->
+        timestamps
+    end
   end
 
   defp get_max_timestamp([]), do: nil
-  defp get_max_timestamp(timestamps) do
-    Enum.max(timestamps)
-  end
+  defp get_max_timestamp(timestamps), do: Enum.max(timestamps)
 
   defp classify_items(items) do
     initial_state = %{
