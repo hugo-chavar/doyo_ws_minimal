@@ -3,7 +3,7 @@ defmodule OrderSerializer.DataMapper do
   require Logger
 
   def map_order(order_data) when is_map(order_data) do
-    incomplete_items = order_data["items"] |> Enum.reject(&(&1["completed"] || &1["deleted"]))
+    incomplete_items = order_data["items"] |> Enum.reject(&(&1["completed"]))
 
     %Order{
       _id: order_data["_id"],
