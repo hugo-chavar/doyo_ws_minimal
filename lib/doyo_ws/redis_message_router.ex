@@ -79,7 +79,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
     updated_tables_detail = OrderSerializer.serialize_all_tables(restaurant_orders_in_updated_tables)
     all_tables_topic = "tables:#{restaurant_id}"
-    broadcast_update(all_tables_topic, updated_tables_detail)
+    broadcast_update(all_tables_topic, %{details: updated_tables_detail})
 
     payload_orders_only_updated_items = Enum.map(payload_orders, fn order ->
       %{order | items: Enum.filter(order.items, fn item ->

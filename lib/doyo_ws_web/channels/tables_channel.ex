@@ -20,7 +20,7 @@ defmodule DoyoWsWeb.TablesChannel do
   def handle_info({:after_tables_join, restaurant_id}, socket) do
     orders = DoyoWs.OrderService.get_by_restaurant(restaurant_id)
     all_tables_detail = OrderSerializer.serialize_all_tables(orders)
-    push(socket, "update", all_tables_detail)
+    push(socket, "update", %{details: all_tables_detail})
 
     {:noreply, socket}
   end
