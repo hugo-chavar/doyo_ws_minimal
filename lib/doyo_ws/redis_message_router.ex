@@ -94,7 +94,7 @@ defmodule DoyoWs.RedisMessageRouter do
     Enum.each(items_by_dept, fn {dept_id, dept_detail} ->
       dept_topic = "department:#{restaurant_id}:#{dept_id}"
       Logger.info("Route: order_items_update broadcast 4")
-      broadcast_update(dept_topic, dept_detail)
+      broadcast_update(dept_topic, %{ tables: dept_detail})
     end)
   end
 
