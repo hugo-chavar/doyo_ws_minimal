@@ -155,12 +155,12 @@ defmodule OrderSerializer.Aggregator do
   end
 
 
-  def calculate_department_totals(department_data) do
+  def calculate_department_totals(_department_data) do
     %{
-      pending_items: count_items_in_status_group(department_data.pending_items),
-      called_items: count_items_in_status_group(department_data.called_items),
-      ready_items: count_items_in_status_group(department_data.ready_items),
-      delivered_items: count_items_in_status_group(department_data.delivered_items),
+      pending_items: 0, # count_items_in_status_group(department_data.pending_items),
+      called_items: 0, #count_items_in_status_group(department_data.called_items),
+      ready_items: 0, # count_items_in_status_group(department_data.ready_items),
+      delivered_items: 0, # count_items_in_status_group(department_data.delivered_items),
       deleted_items: 0 # TODO: Would need separate calculation
     }
   end
