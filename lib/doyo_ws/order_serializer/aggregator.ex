@@ -47,7 +47,8 @@ defmodule OrderSerializer.Aggregator do
           pending_items: [],
           called_items: [],
           ready_items: [],
-          delivered_items: []
+          delivered_items: [],
+          deleted_items: []
         }
 
         # Group items by status within this table
@@ -168,7 +169,7 @@ defmodule OrderSerializer.Aggregator do
         called_items: acc.called_items + count_items_in_status_group(table.called_items),
         ready_items: acc.ready_items + count_items_in_status_group(table.ready_items),
         delivered_items: acc.delivered_items + count_items_in_status_group(table.delivered_items),
-        deleted_items: acc.deleted_items # TODO: Would need separate calculation
+        deleted_items: acc.deleted_items  + count_items_in_status_group(table.deleted_items)
       }
     end)
   end
