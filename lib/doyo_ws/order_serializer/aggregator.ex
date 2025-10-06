@@ -65,8 +65,8 @@ defmodule OrderSerializer.Aggregator do
           if Map.has_key?(acc, status_key) do
             # Group by user for this status
             user_groups = Enum.group_by(status_items, fn {_order, item} ->
-              case item.user_order_action_status.current.user do
-                %{username: username} -> username
+              case item.user_order_action_status["current"]["user"] do
+                %{"username" => username} -> username
                 _ -> nil
               end
             end)
