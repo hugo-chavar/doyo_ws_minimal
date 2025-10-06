@@ -40,6 +40,7 @@ defmodule DoyoWs.RedisMessageRouter do
       "order_items" => order_items
       }
     } = JSON.decode(payload)
+    Logger.info("Route: order_items_update for restaurant #{restaurant_id} items: #{inspect(order_items)}")
     order_ids = Enum.map(order_items, & &1["order_id"])
     item_ids = Enum.flat_map(order_items, & &1["items"])
 
@@ -54,6 +55,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
     # update order status channel
     Enum.each(payload_orders, fn order ->
+      Logger.info("Route: order_items_update broadcast 1")
       broadcast_order_update(restaurant_id, order._id, order)
     end)
 
@@ -66,6 +68,7 @@ defmodule DoyoWs.RedisMessageRouter do
         end)
       if not Enum.empty?(updated_items) do
         single_table_topic = "table:#{restaurant_id}:#{table_id}"
+        Logger.info("Route: order_items_update broadcast 2")
         broadcast_update(single_table_topic, %{items: updated_items})
       end
     end)
@@ -79,6 +82,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
     updated_tables_detail = OrderSerializer.serialize_all_tables(restaurant_orders_in_updated_tables)
     all_tables_topic = "tables:#{restaurant_id}"
+    Logger.info("Route: order_items_update broadcast 3")
     broadcast_update(all_tables_topic, %{details: updated_tables_detail})
 
     payload_orders_only_updated_items = Enum.map(payload_orders, fn order ->
@@ -89,6 +93,7 @@ defmodule DoyoWs.RedisMessageRouter do
     items_by_dept = OrderSerializer.Aggregator.group_items_by_department(payload_orders_only_updated_items)
     Enum.each(items_by_dept, fn {dept_id, dept_detail} ->
       dept_topic = "department:#{restaurant_id}:#{dept_id}"
+      Logger.info("Route: order_items_update broadcast 4")
       broadcast_update(dept_topic, dept_detail)
     end)
   end
