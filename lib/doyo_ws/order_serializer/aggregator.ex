@@ -28,56 +28,80 @@ defmodule OrderSerializer.Aggregator do
       {order, item}
     end)
     |> Enum.into(%{}, fn {dept_id, order_items} ->
-      # Initialize department data structure
-      department_data = %{
-        pending_items: [],
-        called_items: [],
-        ready_items: [],
-        delivered_items: []
-      }
-
-      # Group by status and then by table
-      grouped_by_status = Enum.group_by(order_items, fn {_order, item} ->
-        item.status
+      # First group by table
+      table_groups = Enum.group_by(order_items, fn {order, _item} ->
+        {order.table_order.name, order.table_order.id}
       end)
 
-      department_data = Enum.reduce(grouped_by_status, department_data, fn {status, items_with_orders}, acc ->
-        # Convert status string to atom key
-        status_key =
-          status
-          |> String.downcase()
-          |> then(&:"#{&1}_items")
+      # Transform each table group into the desired structure
+      tables_data = Enum.map(table_groups, fn {{table_name, table_id}, items} ->
+        # Get the first order for table metadata
+        {first_order, _} = hd(items)
 
-        if Map.has_key?(acc, status_key) do
-          table_groups = items_with_orders
-          |> Enum.group_by(fn {order, _item} ->
-            {order.table_order.name, order.table_order.id}
-          end)
-          |> Enum.map(fn {{table_name, table_id}, items} ->
-            {first_order, _} = hd(items)
-            %{
-              name: "#{table_name} #{first_order.menu.title}",
-              table_id: table_id,
-              order_datetime: first_order.timestamp,
-              no_of_guests: first_order.no_of_guests,
-              items: Enum.map(items, fn {_order, item} -> item end)
-            }
-          end)
+        # Initialize table structure with empty arrays for all statuses
+        table_data = %{
+          name: "#{table_name} #{first_order.menu.title}",
+          table_id: table_id,
+          order_datetime: first_order.timestamp,
+          no_of_guests: first_order.no_of_guests,
+          pending_items: [],
+          called_items: [],
+          ready_items: [],
+          delivered_items: []
+        }
 
-          Map.put(acc, status_key, table_groups)
-        else
-          acc
-        end
+        # Group items by status within this table
+        items_by_status = Enum.group_by(items, fn {_order, item} ->
+          item.status
+        end)
+
+        # Process each status group
+        Enum.reduce(items_by_status, table_data, fn {status, status_items}, acc ->
+          status_key =
+            status
+            |> String.downcase()
+            |> then(&:"#{&1}_items")
+
+          if Map.has_key?(acc, status_key) do
+            # Group by user for this status
+            user_groups = Enum.group_by(status_items, fn {_order, item} ->
+              case item.user_order_action_status.current.user do
+                %{username: username} -> username
+                _ -> nil
+              end
+            end)
+
+            # Transform user groups into the required format
+            user_items = Enum.map(user_groups, fn {username, user_items_with_orders} ->
+              items_list = Enum.map(user_items_with_orders, fn {_order, item} -> item end)
+
+              if username do
+                %{
+                  username: username,
+                  items: items_list
+                }
+              else
+                %{
+                  items: items_list
+                }
+              end
+            end)
+
+            Map.put(acc, status_key, user_items)
+          else
+            acc
+          end
+        end)
       end)
 
-      {dept_id, department_data}
+      {dept_id, tables_data}
     end)
   end
 
   defp get_guests(restaurant_id, table_id) do
     case DoyoWs.TableReservationService.get_single_table(restaurant_id, table_id) do
       %{} -> 0
-      reservation -> reservation["guests"]
+      table -> table["guests"]
     end
   end
 

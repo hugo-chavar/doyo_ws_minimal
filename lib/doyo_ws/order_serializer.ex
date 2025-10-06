@@ -28,7 +28,7 @@ defmodule OrderSerializer do
 
   @spec serialize_department_detail(list(), String.t() | nil) :: map()
   def serialize_department_detail(orders, department_id \\ nil) do
-    active_orders = Aggregator.filter_orders(orders, Specifications.active_orders())
+    active_orders = Aggregator.filter_orders(orders, Specifications.active_orders_for_department(department_id))
     department_data = Aggregator.group_items_by_department(active_orders)
 
     if department_id && Map.has_key?(department_data, department_id) do
