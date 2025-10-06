@@ -40,12 +40,13 @@ defmodule OrderSerializer do
         delivered_items: totals.delivered_items,
         called_items: totals.called_items,
         pending_items: totals.pending_items,
+        ready_items: totals.ready_items,
         deleted_items: totals.deleted_items
       }
     else
-      Enum.into(department_data, %{}, fn {dept_name, data} ->
+      Enum.into(department_data, %{}, fn {dept_id, data} ->
         totals = Aggregator.calculate_department_totals(data)
-        {dept_name, %{tables: data, totals: totals}}
+        {dept_id, %{tables: data, totals: totals}}
       end)
     end
   end

@@ -154,15 +154,23 @@ defmodule OrderSerializer.Aggregator do
     |> Enum.max
   end
 
-
-  def calculate_department_totals(department_data) do
-    %{
-      pending_items: count_items_in_status_group(department_data.pending_items),
-      called_items: count_items_in_status_group(department_data.called_items),
-      ready_items: count_items_in_status_group(department_data.ready_items),
-      delivered_items: count_items_in_status_group(department_data.delivered_items),
-      deleted_items: 0 # TODO: Would need separate calculation
-    }
+  def calculate_department_totals(department_data) when is_list(department_data) do
+    # department_data is now a list of tables
+    Enum.reduce(department_data, %{
+      pending_items: 0,
+      called_items: 0,
+      ready_items: 0,
+      delivered_items: 0,
+      deleted_items: 0
+    }, fn table, acc ->
+      %{
+        pending_items: acc.pending_items + count_items_in_status_group(table.pending_items),
+        called_items: acc.called_items + count_items_in_status_group(table.called_items),
+        ready_items: acc.ready_items + count_items_in_status_group(table.ready_items),
+        delivered_items: acc.delivered_items + count_items_in_status_group(table.delivered_items),
+        deleted_items: acc.deleted_items # TODO: Would need separate calculation
+      }
+    end)
   end
 
   defp count_items_in_status_group(status_group) when is_list(status_group) do
