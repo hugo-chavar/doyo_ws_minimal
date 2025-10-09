@@ -137,6 +137,7 @@ defmodule OrderSerializer.Aggregator do
       ready_items_start_time: item_classification_summary["Ready"].earliest_timestamp,
       delivered_items: item_classification_summary["Delivered"].count,
       delivered_items_start_time: item_classification_summary["Delivered"].earliest_timestamp,
+      delivered_amount: item_classification_summary["Delivered"].amount,
       paid_items: item_classification_summary["Paid"].count,
       paid_items_start_time: item_classification_summary["Paid"].earliest_timestamp,
       no_of_guests: guests,
@@ -198,11 +199,11 @@ defmodule OrderSerializer.Aggregator do
 
   defp summarize_item_classifications(orders) when is_list(orders) do
     initial_state = %{
-      "Called" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Delivered" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Pending" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Paid" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Ready" => %{count: 0, earliest_timestamp: nil, items: []}
+      "Called" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Delivered" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Pending" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Paid" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Ready" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []}
     }
 
     Enum.reduce(orders, initial_state, fn order, acc ->
@@ -221,8 +222,9 @@ defmodule OrderSerializer.Aggregator do
       classification_status_data = classification[status]
 
       case classification_status_data do
-        %{count: count, earliest_timestamp: timestamp, items: items} ->
+        %{count: count, amount: amount, earliest_timestamp: timestamp, items: items} ->
           merged_count = acc_status_data.count + count
+          merged_amount = acc_status_data.amount + amount
 
           merged_items = acc_status_data.items ++ items
 
@@ -237,6 +239,7 @@ defmodule OrderSerializer.Aggregator do
 
           Map.put(acc, status, %{
             count: merged_count,
+            amount: merged_amount,
             earliest_timestamp: merged_earliest_timestamp,
             items: merged_items
           })
