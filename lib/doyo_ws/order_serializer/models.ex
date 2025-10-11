@@ -42,7 +42,9 @@ defmodule OrderSerializer.Product do
 end
 
 defmodule OrderSerializer.OrderItem do
-  @derive JSON.Encoder
+  @derive {JSON.Encoder, except: [
+    :is_new, :status, :timestamp
+  ]}
   defstruct [
     :_id, :order_id, :order_type, :order_counter, :product,
     :status, :user_order_action_status, :round, :is_new,

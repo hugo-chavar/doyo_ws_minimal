@@ -76,13 +76,19 @@ defmodule OrderSerializer.Aggregator do
             user_items = Enum.map(user_groups, fn {username, user_items_with_orders} ->
               items_list = Enum.map(user_items_with_orders, fn {_order, item} -> item end)
 
+              latest_timestamp = items_list
+                |> Enum.map(fn item -> item.timestamp end)
+                |> Enum.max
+
               if username do
                 %{
                   username: username,
+                  time: latest_timestamp,
                   items: items_list
                 }
               else
                 %{
+                  time: latest_timestamp,
                   items: items_list
                 }
               end
