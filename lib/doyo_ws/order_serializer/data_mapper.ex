@@ -67,8 +67,6 @@ defmodule OrderSerializer.DataMapper do
       order_id: item_data["order_id"],
       order_type: item_data["order_type"],
       order_counter: item_data["order_counter"],
-      estimated_preparation_time: item_data["estimated_preparation_time"],
-      estimated_delivery_time: item_data["estimated_delivery_time"],
       delivery_status: item_data["delivery_status"]
     }
   end

@@ -51,7 +51,7 @@ defmodule OrderSerializer.OrderItem do
     :product_vat, :service_fee_vat, :total_vat,
     :service_fee, :price_paid, :price_remaining,
     :promo_discount, :order_discount, :total_discount,
-    :delivery_status, :estimated_preparation_time, :estimated_delivery_time,
+    :delivery_status, #:estimated_preparation_time, :estimated_delivery_time,
     # :sync_id, :table_info
   ]
 end
