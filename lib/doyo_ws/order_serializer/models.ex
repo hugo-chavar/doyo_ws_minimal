@@ -22,12 +22,12 @@ defmodule OrderSerializer.Menu do
 end
 
 defmodule OrderSerializer.Category do
-  @derive {JSON.Encoder, only: [:id, :name, :department]}
+  @derive JSON.Encoder
   defstruct [:id, :name, :department]
 end
 
 defmodule OrderSerializer.Restaurant do
-  @derive {JSON.Encoder, only: [:id, :name, :currency]}
+  @derive JSON.Encoder
   defstruct [:id, :name, :currency]
 end
 
