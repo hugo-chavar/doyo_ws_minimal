@@ -214,11 +214,11 @@ defmodule OrderSerializer.DataMapper do
 
   defp classify_items(items) do
     initial_state = %{
-      "Called" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Delivered" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Pending" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Paid" => %{count: 0, earliest_timestamp: nil, items: []},
-      "Ready" => %{count: 0, earliest_timestamp: nil, items: []}
+      "Called" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Delivered" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Pending" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Paid" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []},
+      "Ready" => %{count: 0, amount: 0.0, earliest_timestamp: nil, items: []}
     }
 
     Enum.reduce(items, initial_state, fn item, acc ->
@@ -238,9 +238,10 @@ defmodule OrderSerializer.DataMapper do
 
   defp update_current_status(acc, status, item) do
     case acc[status] do
-      %{count: count, items: items} = status_data ->
+      %{count: count, amount: amount, items: items} = status_data ->
         Map.put(acc, status, %{
           status_data |
+          amount: amount + item["total_price"],
           count: count + 1,
           items: [item | items]
         })
