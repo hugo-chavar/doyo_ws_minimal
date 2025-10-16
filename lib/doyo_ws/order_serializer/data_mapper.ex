@@ -19,7 +19,8 @@ defmodule OrderSerializer.DataMapper do
       billed: Enum.empty?(incomplete_items),
       unbilled_amount: incomplete_items
         |> Enum.map(& &1["ordered_price"])
-        |> Enum.sum(),
+        |> Enum.sum()
+        |> float_round,
       discount: float_round(order_data["discount"]),
       subtotal: float_round(order_data["subtotal"]),
       vat: float_round(order_data["vat"]),
