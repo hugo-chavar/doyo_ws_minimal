@@ -1,6 +1,7 @@
 defmodule OrderSerializer.Aggregator do
   alias OrderSerializer.Specifications
   alias OrderSerializer.Order
+  # require Logger
 
   def filter_orders(orders, specification) do
     Enum.filter(orders, fn order ->
@@ -107,8 +108,8 @@ defmodule OrderSerializer.Aggregator do
 
   defp get_guests(restaurant_id, table_id) do
     case DoyoWs.TableReservationService.get_single_table(restaurant_id, table_id) do
+      %{"guests" => guests} -> guests
       %{} -> 0
-      table -> table["guests"]
     end
   end
 
@@ -226,6 +227,8 @@ defmodule OrderSerializer.Aggregator do
     Enum.reduce(Map.keys(acc), acc, fn status, acc ->
       acc_status_data = acc[status]
       classification_status_data = classification[status]
+      # Logger.info(status)
+      # Logger.info("#{inspect(classification_status_data)}")
 
       case classification_status_data do
         %{count: count, amount: amount, earliest_timestamp: timestamp, items: items} ->
