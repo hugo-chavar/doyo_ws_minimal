@@ -38,13 +38,14 @@ defmodule OrderSerializer.Aggregator do
       tables_data = Enum.map(table_groups, fn {{table_name, table_id}, items} ->
         # Get the first order for table metadata
         {first_order, _} = hd(items)
+        guests = get_guests(first_order.restaurant["id"], table_id)
 
         # Initialize table structure with empty arrays for all statuses
         table_data = %{
           name: "#{table_name} #{first_order.menu.title}",
           table_id: table_id,
           order_datetime: first_order.timestamp,
-          no_of_guests: first_order.no_of_guests,
+          no_of_guests: guests,
           pending_items: [],
           called_items: [],
           ready_items: [],
