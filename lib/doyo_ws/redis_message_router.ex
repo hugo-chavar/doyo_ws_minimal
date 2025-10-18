@@ -101,7 +101,7 @@ defmodule DoyoWs.RedisMessageRouter do
 
   def route("guests_update", payload) do
     {:ok, %{"rid" => restaurant_id, "tid" => table_id}} = JSON.decode(payload)
-    table = TableReservationService.get_by_table(restaurant_id, table_id)
+    table = TableReservationService.get_single_table(restaurant_id, table_id)
     IO.inspect(table, label: "Data before access")
 
     payload_data = %{
