@@ -241,7 +241,7 @@ defmodule OrderSerializer.DataMapper do
       %{count: count, amount: amount, items: items} = status_data ->
         Map.put(acc, status, %{
           status_data |
-          amount: amount + item["total_price"],
+          amount: float_round(amount + item["total_price"]),
           count: count + 1,
           items: [item | items]
         })
