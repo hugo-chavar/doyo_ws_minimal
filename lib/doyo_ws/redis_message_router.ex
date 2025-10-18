@@ -1,6 +1,7 @@
 defmodule DoyoWs.RedisMessageRouter do
   require Logger
   alias DoyoWs.OrderService
+  alias DoyoWs.TableReservationService
   alias DoyoWsWeb.Endpoint
 
   def route("orders", payload) do
@@ -98,9 +99,48 @@ defmodule DoyoWs.RedisMessageRouter do
     end)
   end
 
-  def route("update_table_guests", payload) do
-    {:ok, %{"rid" => _restaurant_id, "tid" => _table_id, "mid" => _menu_id}} = JSON.decode(payload)
-    # TODO find the table and send the update to all_tables and single_table
+  def route("guests_update", payload) do
+    {:ok, %{"rid" => restaurant_id, "tid" => table_id}} = JSON.decode(payload)
+    table = TableReservationService.get_by_table(restaurant_id, table_id)
+
+    payload_data = %{
+      guests: table["guests"],
+      table_order: %{id: table["id"]}
+    }
+
+    table_payload = %{
+      update_guests: true,
+      data: payload_data
+    }
+
+    all_tables_topic = "tables:#{restaurant_id}"
+    Logger.info("Route: guests_update broadcast 1")
+    broadcast_update(all_tables_topic, table_payload)
+
+    single_table_topic = "table:#{restaurant_id}:#{table_id}"
+    Logger.info("Route: guests_update broadcast 2")
+    broadcast_update(single_table_topic, table_payload)
+
+    orders = OrderService.get_by_table(restaurant_id, table_id)
+
+    dept_ids =
+      orders
+      |> Enum.flat_map(& &1.items)
+      |> Enum.filter(fn item -> not item.completed end)
+      |> Enum.map(fn item -> item.product.category.department.id end) |> Enum.uniq()
+
+    dept_payload = %{
+      tables: [
+        table_id: table_id,
+        update_guests: true,
+        data: payload_data
+      ]
+    }
+    Enum.each(dept_ids, fn dept_id ->
+      dept_topic = "department:#{restaurant_id}:#{dept_id}"
+      Logger.info("Route: guests_update broadcast 3")
+      broadcast_update(dept_topic, %{ tables: dept_payload})
+    end)
   end
 
   def route(channel, payload) do
