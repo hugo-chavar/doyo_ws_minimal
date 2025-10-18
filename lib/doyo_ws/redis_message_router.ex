@@ -132,9 +132,11 @@ defmodule DoyoWs.RedisMessageRouter do
 
     dept_payload = %{
       tables: [
-        table_id: table_id,
-        update_guests: true,
-        data: payload_data
+        %{
+          table_id: table_id,
+          update_guests: true,
+          data: payload_data
+        }
       ]
     }
     Enum.each(dept_ids, fn dept_id ->
