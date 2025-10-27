@@ -35,69 +35,10 @@ defmodule DoyoWs.RedisMessageRouter do
 
   end
 
-  def route("order_items_update", payload) do
-    {:ok, %{
-      "rid" => restaurant_id,
-      "order_items" => order_items
-      }
-    } = JSON.decode(payload)
-    Logger.info("Route: order_items_update for restaurant #{restaurant_id} items: #{inspect(order_items)}")
-    order_ids = Enum.map(order_items, & &1["order_id"])
-    item_ids = Enum.flat_map(order_items, & &1["items"])
-
-    restaurant_orders = OrderService.get_by_restaurant(restaurant_id)
-    payload_orders =
-      restaurant_orders
-      |> Enum.filter(& &1._id in order_ids)
-
-    payload_orders_by_table =
-      payload_orders
-      |> OrderSerializer.Aggregator.group_orders_by_table()
-
-    # update order status channel
-    Enum.each(payload_orders, fn order ->
-      Logger.info("Route: order_items_update broadcast 1")
-      broadcast_order_update(restaurant_id, order._id, order)
-    end)
-
-    # update single table channels
-    Enum.each(payload_orders_by_table, fn {table_id, table_orders} ->
-      updated_items =
-        table_orders
-        |> Enum.flat_map(fn order ->
-          Enum.filter(order.items, & &1._id in item_ids)
-        end)
-      if not Enum.empty?(updated_items) do
-        single_table_topic = "table:#{restaurant_id}:#{table_id}"
-        Logger.info("Route: order_items_update broadcast 2")
-        broadcast_update(single_table_topic, %{items: updated_items})
-      end
-    end)
-
-    # update all tables channel
-    updated_tables = Enum.map(payload_orders_by_table, & elem(&1,0))
-
-    restaurant_orders_in_updated_tables =
-      restaurant_orders
-      |> Enum.filter(fn order -> order.table_order.id in updated_tables end)
-
-    updated_tables_detail = OrderSerializer.serialize_all_tables(restaurant_orders_in_updated_tables)
-    all_tables_topic = "tables:#{restaurant_id}"
-    Logger.info("Route: order_items_update broadcast 3")
-    broadcast_update(all_tables_topic, %{details: updated_tables_detail})
-
-    payload_orders_only_updated_items = Enum.map(payload_orders, fn order ->
-      %{order | items: Enum.filter(order.items, fn item ->
-        item._id in item_ids
-      end)}
-    end)
-    items_by_dept = OrderSerializer.Aggregator.group_items_by_department(payload_orders_only_updated_items)
-    Enum.each(items_by_dept, fn {dept_id, dept_detail} ->
-      dept_topic = "department:#{restaurant_id}:#{dept_id}"
-      Logger.info("Route: order_items_update broadcast 4")
-      broadcast_update(dept_topic, %{ tables: dept_detail})
-    end)
-  end
+def route("order_items_update", payload) do
+  {:ok, decoded_payload} = JSON.decode(payload)
+  process_order_items_update(decoded_payload)
+end
 
   def route("guests_update", payload) do
     {:ok, %{"rid" => restaurant_id, "tid" => table_id}} = JSON.decode(payload)
@@ -180,5 +121,101 @@ defmodule DoyoWs.RedisMessageRouter do
       topic = "counter:#{type}:#{rid}"
       broadcast_update(topic, count)
     end
+  end
+
+  defp process_order_items_update(%{
+    "rid" => restaurant_id,
+    "order_items" => order_items
+  } = payload) do
+    Logger.info("Route: order_items_update for restaurant #{restaurant_id} items: #{inspect(order_items)}")
+
+    is_new = Map.get(payload, "new", false)
+    {order_ids, item_ids} = extract_payload_data(order_items)
+    restaurant_orders = OrderService.get_by_restaurant(restaurant_id)
+
+    payload_orders = filter_orders_by_ids(restaurant_orders, order_ids)
+    payload_orders_by_table = OrderSerializer.Aggregator.group_orders_by_table(payload_orders)
+
+    # Broadcast order updates for each individual order
+    broadcast_order_updates(restaurant_id, payload_orders)
+
+    # Broadcast table updates (skip if new items are being created)
+    if not is_new do
+      broadcast_table_updates(restaurant_id, payload_orders_by_table, item_ids)
+    end
+
+    # Broadcast all tables overview
+    broadcast_all_tables_update(restaurant_id, restaurant_orders, payload_orders_by_table)
+
+    # Broadcast department updates
+    broadcast_department_updates(restaurant_id, payload_orders, item_ids)
+  end
+
+  defp extract_payload_data(order_items) do
+    order_ids = Enum.map(order_items, & &1["order_id"])
+    item_ids = Enum.flat_map(order_items, & &1["items"])
+    {order_ids, item_ids}
+  end
+
+  defp filter_orders_by_ids(restaurant_orders, order_ids) do
+    Enum.filter(restaurant_orders, & &1._id in order_ids)
+  end
+
+  defp broadcast_order_updates(restaurant_id, payload_orders) do
+    Enum.each(payload_orders, fn order ->
+      Logger.info("Route: order_items_update broadcast 1")
+      broadcast_order_update(restaurant_id, order._id, order)
+    end)
+  end
+
+  defp broadcast_table_updates(restaurant_id, payload_orders_by_table, item_ids) do
+    Enum.each(payload_orders_by_table, fn {table_id, table_orders} ->
+      updated_items = extract_updated_items(table_orders, item_ids)
+
+      if Enum.any?(updated_items) do
+        single_table_topic = "table:#{restaurant_id}:#{table_id}"
+        Logger.info("Route: order_items_update broadcast 2")
+        broadcast_update(single_table_topic, %{items: updated_items})
+      end
+    end)
+  end
+
+  defp extract_updated_items(table_orders, item_ids) do
+    table_orders
+    |> Enum.flat_map(fn order ->
+      Enum.filter(order.items, & &1._id in item_ids)
+    end)
+  end
+
+  defp broadcast_all_tables_update(restaurant_id, restaurant_orders, payload_orders_by_table) do
+    updated_tables = Enum.map(payload_orders_by_table, & elem(&1, 0))
+
+    restaurant_orders_in_updated_tables =
+      restaurant_orders
+      |> Enum.filter(fn order -> order.table_order.id in updated_tables end)
+
+    updated_tables_detail = OrderSerializer.serialize_all_tables(restaurant_orders_in_updated_tables)
+    all_tables_topic = "tables:#{restaurant_id}"
+    Logger.info("Route: order_items_update broadcast 3")
+    broadcast_update(all_tables_topic, %{details: updated_tables_detail})
+  end
+
+  defp broadcast_department_updates(restaurant_id, payload_orders, item_ids) do
+    payload_orders_only_updated_items = filter_orders_to_updated_items(payload_orders, item_ids)
+    items_by_dept = OrderSerializer.Aggregator.group_items_by_department(payload_orders_only_updated_items)
+
+    Enum.each(items_by_dept, fn {dept_id, dept_detail} ->
+      dept_topic = "department:#{restaurant_id}:#{dept_id}"
+      Logger.info("Route: order_items_update broadcast 4")
+      broadcast_update(dept_topic, %{tables: dept_detail})
+    end)
+  end
+
+  defp filter_orders_to_updated_items(payload_orders, item_ids) do
+    Enum.map(payload_orders, fn order ->
+      %{order | items: Enum.filter(order.items, fn item ->
+        item._id in item_ids
+      end)}
+    end)
   end
 end
