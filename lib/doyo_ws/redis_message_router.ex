@@ -100,7 +100,12 @@ end
     # Only new orders are supposed to end here
     order = OrderService.get_by_order_id(rid, order_id)
     broadcast_order_update(rid, order_id, order)
-    table_id = get_in(order, [:table_order, :id])
+
+    table_id = case order do
+      %{table_order: %{id: id}} -> id
+      _ -> nil
+    end
+
     if table_id do
       single_table_topic = "table:#{rid}:#{table_id}"
       Logger.info("Broadcast new order to #{single_table_topic}")
