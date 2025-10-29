@@ -166,7 +166,9 @@ defmodule OrderSerializer.Aggregator do
     |> Enum.flat_map(fn order ->
       [order.last_action_datetime]
     end)
-    |> Enum.max
+    |> Enum.max_by(fn action_datetime ->
+      DateTime.to_unix(action_datetime)
+    end)
   end
 
   def calculate_department_totals(department_data) when is_list(department_data) do
