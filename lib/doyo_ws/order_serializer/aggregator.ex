@@ -115,7 +115,9 @@ defmodule OrderSerializer.Aggregator do
   end
 
   def calculate_table_summary(table_orders) when is_list(table_orders) and table_orders != [] do
-    latest_order = Enum.max_by(table_orders, & &1.timestamp)
+    latest_order = Enum.max_by(table_orders, fn order ->
+      DateTime.to_unix(order.timestamp)
+    end)
     has_new_orders = contains_new_orders(table_orders)
     guests = get_guests(latest_order.restaurant["id"], latest_order.table_order.id)
     total_amount = table_orders
