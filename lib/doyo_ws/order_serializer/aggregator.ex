@@ -162,13 +162,15 @@ defmodule OrderSerializer.Aggregator do
   def calculate_table_summary([]), do: %{}
 
   defp get_last_action_datetime(orders) do
-    orders
-    |> Enum.flat_map(fn order ->
-      [order.last_action_datetime]
-    end)
-    |> Enum.max_by(fn action_datetime ->
-      DateTime.to_unix(action_datetime)
-    end)
+    datetimes = orders
+      |> Enum.map(& &1.last_action_datetime)
+      |> Enum.reject(&is_nil/1)
+
+    if Enum.empty?(datetimes) do
+      nil
+    else
+      Enum.max_by(datetimes, &DateTime.to_unix/1)
+    end
   end
 
   def calculate_department_totals(department_data) when is_list(department_data) do
