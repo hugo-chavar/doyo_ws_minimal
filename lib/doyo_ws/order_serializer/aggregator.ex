@@ -115,6 +115,9 @@ defmodule OrderSerializer.Aggregator do
   end
 
   def calculate_table_summary(table_orders) when is_list(table_orders) and table_orders != [] do
+    first_order = Enum.min_by(table_orders, fn order ->
+      DateTime.to_unix(order.timestamp)
+    end)
     latest_order = Enum.max_by(table_orders, fn order ->
       DateTime.to_unix(order.timestamp)
     end)
@@ -135,7 +138,7 @@ defmodule OrderSerializer.Aggregator do
       table_order: latest_order.table_order,
       menu: latest_order.menu,
       order_type: latest_order.order_type,
-      order_datetime: latest_order.timestamp,
+      order_datetime: first_order.timestamp,
       latest_order_datetime: latest_order.timestamp,
       last_action_datetime: get_last_action_datetime(table_orders),
       total_amount: total_amount,
