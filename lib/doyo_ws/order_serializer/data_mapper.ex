@@ -55,36 +55,52 @@ defmodule OrderSerializer.DataMapper do
   end
 
   defp map_order_item(item_data) do
-    %OrderItem{
-      _id: item_data["_id"],
-      product: map_product(item_data["product"]),
-      status: get_item_status(item_data),
-      user_order_action_status: item_data["user_order_action_status"],
-      actual_price: float_round(item_data["actual_price"]),
-      ordered_price: float_round(item_data["ordered_price"]),
-      completed: item_data["completed"] || false,
-      deleted: item_data["deleted"] || false,
-      paid: item_data["paid"] || false,
-      timestamp: get_item_timestamp(item_data),
-      is_new: item_is_new(item_data),
-      note: item_data["note"] || "",
-      service_fee: float_round(item_data["service_fee"]),
-      service_fee_vat: float_round(item_data["service_fee_vat"]),
-      product_vat: float_round(item_data["product_vat"]),
-      total_vat: float_round(item_data["total_vat"]),
-      total_price: float_round(item_data["total_price"]),
-      price_paid: float_round(item_data["price_paid"]),
-      price_remaining: (item_data["price_remaining"]),
-      promo_discount: float_round(item_data["promo_discount"]),
-      order_discount: float_round(item_data["order_discount"]),
-      total_discount: float_round(item_data["total_discount"]),
-      tag: item_data["tag"],
-      round: item_data["round"],
-      order_id: item_data["order_id"],
-      order_type: item_data["order_type"],
-      order_counter: item_data["order_counter"],
-      delivery_status: item_data["delivery_status"]
-    }
+    try do
+      %OrderItem{
+        _id: item_data["_id"],
+        product: map_product(item_data["product"]),
+        status: get_item_status(item_data),
+        user_order_action_status: item_data["user_order_action_status"],
+        actual_price: float_round(item_data["actual_price"]),
+        ordered_price: float_round(item_data["ordered_price"]),
+        completed: item_data["completed"] || false,
+        deleted: item_data["deleted"] || false,
+        paid: item_data["paid"] || false,
+        timestamp: get_item_timestamp(item_data),
+        is_new: item_is_new(item_data),
+        note: item_data["note"] || "",
+        service_fee: float_round(item_data["service_fee"]),
+        service_fee_vat: float_round(item_data["service_fee_vat"]),
+        product_vat: float_round(item_data["product_vat"]),
+        total_vat: float_round(item_data["total_vat"]),
+        total_price: float_round(item_data["total_price"]),
+        price_paid: float_round(item_data["price_paid"]),
+        price_remaining: (item_data["price_remaining"]),
+        promo_discount: float_round(item_data["promo_discount"]),
+        order_discount: float_round(item_data["order_discount"]),
+        total_discount: float_round(item_data["total_discount"]),
+        tag: item_data["tag"],
+        round: item_data["round"],
+        order_id: item_data["order_id"],
+        order_type: item_data["order_type"],
+        order_counter: item_data["order_counter"],
+        delivery_status: item_data["delivery_status"]
+      }
+    rescue
+      error ->
+        # Log detailed error information
+        Logger.error("""
+        Error mapping item:
+        - Order ID: #{item_data["order_id"] || "unknown"}
+        - Item ID: #{item_data["_id"] || "unknown"}
+        - Error: #{Exception.message(error)}
+        - Stacktrace: #{Exception.format_stacktrace(__STACKTRACE__)}
+        - Item data: #{inspect(item_data, limit: :infinity, printable_limit: :infinity)}
+        """)
+
+        # Re-raise the error to maintain existing behavior
+        reraise error, __STACKTRACE__
+    end
   end
 
   defp map_product(product_data) when is_map(product_data) do
