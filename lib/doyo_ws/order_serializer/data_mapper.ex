@@ -318,7 +318,7 @@ defmodule OrderSerializer.DataMapper do
   end
 
   defp float_round(value) do
-    (value || 0.0) |> Float.round(2)
+    ((value || 0.0) / 1) |> Float.round(2)
   end
 
 end
