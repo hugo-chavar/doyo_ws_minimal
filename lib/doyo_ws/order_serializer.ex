@@ -53,7 +53,10 @@ defmodule OrderSerializer do
 
   defp get_no_of_guests([]), do: 0
   defp get_no_of_guests([first_order | _]) do
-    %{restaurant: %{id: rid}, table_order: %{id: tid}} = first_order
+    %OrderSerializer.Order{
+      restaurant: %{"id" => rid},
+      table_order: %{id: tid}
+    } = first_order
     Aggregator.get_guests(rid, tid)
   end
 end
