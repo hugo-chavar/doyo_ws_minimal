@@ -9,10 +9,8 @@ defmodule OrderSerializer.Table do
 end
 
 defmodule OrderSerializer.Menu do
-  @derive {JSON.Encoder, only: [
-    :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
-    :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat,
-    :estimated_preparation_time, :estimated_delivery_time
+  @derive {JSON.Encoder, except: [
+    :title
   ]}
   defstruct [
     :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
@@ -59,12 +57,9 @@ defmodule OrderSerializer.OrderItem do
 end
 
 defmodule OrderSerializer.Order do
-  @derive {JSON.Encoder, only: [
-    :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :completed, :billed, :mode_of_payment,
-    :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
-    :discount, :estimated_preparation_time, :estimated_delivery_time,
-    :delivery
+  @derive {JSON.Encoder, except: [
+    :total_items, :last_action_datetime, :active,
+    :item_classification, :unbilled_amount, :t
   ]}
   defstruct [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
