@@ -3,40 +3,55 @@ defmodule OrderSerializer.DataMapper do
   require Logger
 
   def map_order(order_data) when is_map(order_data) do
-    incomplete_items = order_data["items"] |> Enum.reject(&(&1["completed"]))
+    try do
+      incomplete_items = order_data["items"] |> Enum.reject(&(&1["completed"]))
 
-    %Order{
-      _id: order_data["_id"],
-      table_order: map_table(order_data["table_order"]),
-      menu: map_menu(order_data["menu"]),
-      order_type: order_data["order_type"],
-      timestamp: parse_datetime(order_data["timestamp"]),
-      items: Enum.map(order_data["items"] || [], &map_order_item/1),
-      total: float_round(order_data["total"]),
-      total_items: length(incomplete_items),
-      no_of_guests: order_data["no_of_guests"],
-      completed: order_data["completed"] || false,
-      billed: Enum.empty?(incomplete_items),
-      unbilled_amount: incomplete_items
-        |> Enum.map(& &1["ordered_price"])
-        |> Enum.sum()
-        |> float_round,
-      discount: float_round(order_data["discount"]),
-      subtotal: float_round(order_data["subtotal"]),
-      vat: float_round(order_data["vat"]),
-      service_fee: float_round(order_data["service_fee"]),
-      flat_person_fee: float_round(order_data["flat_person_fee"]),
-      home_delivery_fee: float_round(order_data["home_delivery_fee"]),
-      restaurant: order_data["restaurant"],
-      order_counter: order_data["order_counter"],
-      mode_of_payment: order_data["mode_of_payment"],
-      estimated_preparation_time: order_data["estimated_preparation_time"],
-      estimated_delivery_time: order_data["estimated_delivery_time"],
-      last_action_datetime: get_last_action_datetime(order_data["items"]),
-      item_classification: classify_items(order_data["items"]),
-      active: order_data["active"],
-      t: order_data["t"] || "Other"
-    }
+      %Order{
+        _id: order_data["_id"],
+        table_order: map_table(order_data["table_order"]),
+        menu: map_menu(order_data["menu"]),
+        order_type: order_data["order_type"],
+        timestamp: parse_datetime(order_data["timestamp"]),
+        items: Enum.map(order_data["items"] || [], &map_order_item/1),
+        total: float_round(order_data["total"]),
+        total_items: length(incomplete_items),
+        no_of_guests: order_data["no_of_guests"],
+        completed: order_data["completed"] || false,
+        billed: Enum.empty?(incomplete_items),
+        unbilled_amount: incomplete_items
+          |> Enum.map(& &1["ordered_price"])
+          |> Enum.sum()
+          |> float_round,
+        discount: float_round(order_data["discount"]),
+        subtotal: float_round(order_data["subtotal"]),
+        vat: float_round(order_data["vat"]),
+        service_fee: float_round(order_data["service_fee"]),
+        flat_person_fee: float_round(order_data["flat_person_fee"]),
+        home_delivery_fee: float_round(order_data["home_delivery_fee"]),
+        restaurant: order_data["restaurant"],
+        order_counter: order_data["order_counter"],
+        mode_of_payment: order_data["mode_of_payment"],
+        estimated_preparation_time: order_data["estimated_preparation_time"],
+        estimated_delivery_time: order_data["estimated_delivery_time"],
+        last_action_datetime: get_last_action_datetime(order_data["items"]),
+        item_classification: classify_items(order_data["items"]),
+        active: order_data["active"],
+        t: order_data["t"] || "Other"
+      }
+    rescue
+      error ->
+        # Log detailed error information
+        Logger.error("""
+        Error mapping order:
+        - Order ID: #{order_data["_id"] || "unknown"}
+        - Error: #{Exception.message(error)}
+        - Stacktrace: #{Exception.format_stacktrace(__STACKTRACE__)}
+        - Order data: #{inspect(order_data, limit: :infinity, printable_limit: :infinity)}
+        """)
+
+        # Re-raise the error to maintain existing behavior
+        reraise error, __STACKTRACE__
+    end
   end
 
   defp map_order_item(item_data) do
