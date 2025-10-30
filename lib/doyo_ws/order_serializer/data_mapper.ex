@@ -15,7 +15,6 @@ defmodule OrderSerializer.DataMapper do
         items: Enum.map(order_data["items"] || [], &map_order_item/1),
         total: float_round(order_data["total"]),
         total_items: length(incomplete_items),
-        no_of_guests: order_data["no_of_guests"],
         completed: order_data["completed"] || false,
         billed: Enum.empty?(incomplete_items),
         unbilled_amount: incomplete_items

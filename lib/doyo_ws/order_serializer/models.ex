@@ -61,14 +61,14 @@ end
 defmodule OrderSerializer.Order do
   @derive {JSON.Encoder, only: [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
+    :order_counter, :completed, :billed, :mode_of_payment,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee,
     :discount, :estimated_preparation_time, :estimated_delivery_time,
     :delivery
   ]}
   defstruct [
     :_id, :restaurant, :table_order, :menu, :order_type, :timestamp, :items,
-    :order_counter, :no_of_guests, :completed, :billed, :mode_of_payment,
+    :order_counter, :completed, :billed, :mode_of_payment,
     :total_items, :last_action_datetime, :active, :t,
     :total, :subtotal, :vat, :service_fee, :flat_person_fee, :home_delivery_fee, :discount,
     :estimated_preparation_time, :estimated_delivery_time, :delivery,
