@@ -107,7 +107,7 @@ defmodule OrderSerializer.Aggregator do
     end)
   end
 
-  defp get_guests(restaurant_id, table_id) do
+  def get_guests(restaurant_id, table_id) do
     case DoyoWs.TableReservationService.get_single_table(restaurant_id, table_id) do
       %{"guests" => guests} -> guests
       %{} -> 0
