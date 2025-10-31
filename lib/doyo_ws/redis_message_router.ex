@@ -35,10 +35,10 @@ defmodule DoyoWs.RedisMessageRouter do
 
   end
 
-def route("order_items_update", payload) do
-  {:ok, decoded_payload} = JSON.decode(payload)
-  process_order_items_update(decoded_payload)
-end
+  def route("order_items_update", payload) do
+    {:ok, decoded_payload} = JSON.decode(payload)
+    process_order_items_update(decoded_payload)
+  end
 
   def route("guests_update", payload) do
     {:ok, %{"rid" => restaurant_id, "tid" => table_id}} = JSON.decode(payload)
