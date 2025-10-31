@@ -5,29 +5,19 @@ defmodule DoyoWs.RedisMessageRouter do
   alias DoyoWsWeb.Endpoint
 
   def route("orders", payload) do
-    case JSON.decode(payload) do
-      {
-        :ok,
-        %{"rid" => rid, "order_id" => order_id, "data" => inner_data}
-      } when is_binary(order_id) ->
+    case payload do
+      %{"rid" => rid, "order_id" => order_id, "data" => inner_data} when is_binary(order_id) ->
         topic = "order:#{rid}:#{order_id}"
         broadcast_update(topic, inner_data)
-      {
-        :ok,
-        %{"rid" => rid, "order_id" => order_id}
-      } when is_binary(order_id) ->
+      %{"rid" => rid, "order_id" => order_id} when is_binary(order_id) ->
         broadcast_order_update(rid, order_id)
-      {:ok, decoded} ->
+      decoded ->
         Logger.warning("Received orders message without order_id: #{inspect(decoded)}")
-
-      {:error, reason} ->
-        Logger.error("Failed to decode order message: #{inspect(reason)} - #{payload}")
     end
   end
 
 
-  def route("counter_" <> type, payload) do
-    {:ok, %{"rid" => restaurant_id}} = JSON.decode(payload)
+  def route("counter_" <> type, %{"rid" => restaurant_id}) do
     Logger.info("Stub: Received #{type}_counter for restaurant #{restaurant_id}")
     {:ok, count} = DoyoWs.OrderItemCounter.get_counter(restaurant_id, type)
     topic = "counter:#{type}:#{restaurant_id}"
@@ -36,12 +26,10 @@ defmodule DoyoWs.RedisMessageRouter do
   end
 
   def route("order_items_update", payload) do
-    {:ok, decoded_payload} = JSON.decode(payload)
-    process_order_items_update(decoded_payload)
+    process_order_items_update(payload)
   end
 
-  def route("guests_update", payload) do
-    {:ok, %{"rid" => restaurant_id, "tid" => table_id}} = JSON.decode(payload)
+  def route("guests_update", %{"rid" => restaurant_id, "tid" => table_id}) do
     table = TableReservationService.get_single_table(restaurant_id, table_id)
     IO.inspect(table, label: "Data before access")
 

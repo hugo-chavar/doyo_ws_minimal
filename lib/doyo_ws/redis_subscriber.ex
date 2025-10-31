@@ -29,8 +29,14 @@ defmodule DoyoWs.RedisSubscriber do
   def handle_info({:redix_pubsub, _conn, _ref, :message, %{channel: channel, payload: payload}}, state) do
     Logger.debug("Received message from Redis [#{channel}]: #{inspect(payload)}")
 
-    DoyoWs.RedisMessageRouter.route(channel, payload)
-
+    Task.start(fn ->
+      with {:ok, decoded} <- JSON.decode(payload) do
+        DoyoWs.RedisMessageRouter.route(channel, decoded)
+      else
+        {:error, error} ->
+          Logger.error("Invalid message on #{channel}: #{inspect(error)}")
+      end
+    end)
     {:noreply, state}
   end
 
