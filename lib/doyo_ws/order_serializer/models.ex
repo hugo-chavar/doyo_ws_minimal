@@ -9,9 +9,7 @@ defmodule OrderSerializer.Table do
 end
 
 defmodule OrderSerializer.Menu do
-  @derive {JSON.Encoder, except: [
-    :title
-  ]}
+  @derive JSON.Encoder
   defstruct [
     :id, :title, :service_fee, :service_fee_vat, :flat_person_fee,
     :flat_person_fee_vat, :home_delivery_fee, :home_delivery_fee_vat,
