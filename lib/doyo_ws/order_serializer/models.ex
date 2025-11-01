@@ -1,10 +1,10 @@
 defmodule OrderSerializer.Department do
-  @derive {JSON.Encoder, only: [:id, :name]}
+  @derive JSON.Encoder
   defstruct [:id, :name]
 end
 
 defmodule OrderSerializer.Table do
-  @derive {JSON.Encoder, only: [:id, :name]}
+  @derive JSON.Encoder
   defstruct [:id, :name]
 end
 
