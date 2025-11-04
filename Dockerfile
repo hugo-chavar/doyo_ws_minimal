@@ -1,5 +1,5 @@
 # --- Stage 1: Build ---
-FROM elixir:1.18-alpine AS builder
+FROM elixir:1.19-alpine AS builder
 
 # Install required packages
 RUN apk add --no-cache build-base git
