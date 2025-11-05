@@ -20,7 +20,7 @@ RUN mix deps.get --only prod
 
 # Copy source code and compile
 COPY . .
-RUN mix do compile, release
+RUN mix do compile + release
 
 # --- Stage 2: Runtime image ---
 FROM alpine:3.22
