@@ -22,6 +22,7 @@ defmodule OrderSerializer.DataMapper do
           |> Enum.sum()
           |> float_round,
         discount: float_round(order_data["discount"]),
+        discount_in_percent: order_data["discount_in_percent"] || false,
         subtotal: float_round(order_data["subtotal"]),
         vat: float_round(order_data["vat"]),
         service_fee: float_round(order_data["service_fee"]),
@@ -30,6 +31,9 @@ defmodule OrderSerializer.DataMapper do
         restaurant: order_data["restaurant"],
         order_counter: order_data["order_counter"],
         mode_of_payment: order_data["mode_of_payment"],
+        delivery: order_data["delivery"],
+        delivery_status: order_data["delivery_status"],
+        assigned_driver_id: order_data["assigned_driver_id"],
         estimated_preparation_time: order_data["estimated_preparation_time"],
         estimated_delivery_time: order_data["estimated_delivery_time"],
         last_action_datetime: get_last_action_datetime(order_data["items"]),
