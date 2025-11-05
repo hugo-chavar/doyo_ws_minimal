@@ -19,6 +19,9 @@ defmodule DoyoWsWeb.Endpoint do
     # to remove /websocket see https://chatgpt.com/share/67e1d7d9-49e4-8000-b3f1-0e1f2fadf226 nginx solution
     websocket: [
       timeout: 600_000, # 10 minutes
+      check_origin: System.get_env("ALLOWED_WEBSOCKET_ORIGINS", "http://localhost:3000")
+                      |> String.split(",")
+                      |> Enum.map(&String.trim/1)
     ],
     longpoll: false
 
