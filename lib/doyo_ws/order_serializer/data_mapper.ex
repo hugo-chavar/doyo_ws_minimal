@@ -33,6 +33,7 @@ defmodule OrderSerializer.DataMapper do
         mode_of_payment: order_data["mode_of_payment"],
         delivery: order_data["delivery"],
         delivery_status: order_data["delivery_status"],
+        client_name: order_data["client_name"],
         assigned_driver_id: order_data["assigned_driver_id"],
         estimated_preparation_time: order_data["estimated_preparation_time"],
         estimated_delivery_time: order_data["estimated_delivery_time"],
