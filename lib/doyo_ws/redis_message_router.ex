@@ -88,7 +88,11 @@ defmodule DoyoWs.RedisMessageRouter do
     # Only new orders are supposed to end here
     order = OrderService.get_by_order_id(rid, order_id)
     broadcast_order_update(rid, order_id, order)
+    broadcast_order_to_single_table(rid, order_id, order)
 
+  end
+
+  defp broadcast_order_to_single_table(rid, order_id, order) do
     table_id = case order do
       %{table_order: %{id: id}} -> id
       _ -> nil
