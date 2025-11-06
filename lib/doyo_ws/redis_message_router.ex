@@ -9,6 +9,8 @@ defmodule DoyoWs.RedisMessageRouter do
       %{"rid" => rid, "order_id" => order_id, "data" => inner_data} when is_binary(order_id) ->
         topic = "order:#{rid}:#{order_id}"
         broadcast_update(topic, inner_data)
+        order = OrderService.get_by_order_id(rid, order_id)
+        broadcast_order_to_single_table(rid, order_id, order)
       %{"rid" => rid, "order_id" => order_id} when is_binary(order_id) ->
         broadcast_order_update(rid, order_id)
       decoded ->
