@@ -15,13 +15,20 @@ defmodule DoyoWsWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+
+  # Temporary debug version - add this to your endpoint.ex
+  allowed_origins = System.get_env("ALLOWED_WEBSOCKET_ORIGINS", "http://localhost:3000")
+                  |> String.split(",")
+                  |> Enum.map(&String.trim/1)
+
+  # Add this line to see what's actually being loaded
+  IO.inspect("Allowed WebSocket origins: #{inspect(allowed_origins)}")
+
   socket "/new_ws", DoyoWsWeb.UserSocket,
     # to remove /websocket see https://chatgpt.com/share/67e1d7d9-49e4-8000-b3f1-0e1f2fadf226 nginx solution
     websocket: [
       timeout: 600_000, # 10 minutes
-      check_origin: System.get_env("ALLOWED_WEBSOCKET_ORIGINS", "http://localhost:3000")
-                      |> String.split(",")
-                      |> Enum.map(&String.trim/1)
+      check_origin: allowed_origins
     ],
     longpoll: false
 
