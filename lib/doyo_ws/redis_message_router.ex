@@ -173,8 +173,46 @@ defmodule DoyoWs.RedisMessageRouter do
 
       if Enum.any?(updated_items) do
         single_table_topic = "table:#{restaurant_id}:#{table_id}"
-        Logger.info("Route: order_items_update broadcast 2")
+        Logger.info("Route: order_items_update broadcast 2 #{single_table_topic}")
         broadcast_update(single_table_topic, %{items: updated_items})
+        called_items = transform_called_items(updated_items)
+        if Enum.any?(updated_items) do
+          called_items_topic = "called:#{restaurant_id}"
+          Logger.info("Route: order_items_update broadcast 3 #{called_items_topic}")
+          broadcast_update(called_items_topic, %{items: called_items})
+        end
+      end
+    end)
+  end
+
+  defp last_status_was_called?(item) do
+    case item.user_order_action_status do
+      %{"history" => history} when is_list(history) and history != [] ->
+        last_entry = List.last(history)
+        Map.get(last_entry, "status") == "Called"
+      _ ->
+        false
+    end
+  end
+
+  def transform_called_items(updated_items) do
+    updated_items
+    |> Enum.flat_map(fn item ->
+      cond do
+        # Condition 1: Keep item as-is if current status is "Called"
+        item.status == "Called" ->
+          [item]
+
+        # Condition 2: If last status in history was "Called", create delete object
+        last_status_was_called?(item) ->
+          [%{
+            "_id" => item._id,
+            "delete" => true
+          }]
+
+        # Condition 3: Exclude item from new list in all other cases
+        true ->
+          []
       end
     end)
   end
