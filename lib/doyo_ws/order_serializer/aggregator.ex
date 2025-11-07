@@ -161,6 +161,29 @@ defmodule OrderSerializer.Aggregator do
 
   def calculate_table_summary([]), do: %{}
 
+  def calculate_called_items(orders) when is_list(orders) and orders != [] do
+    orders |>
+    Enum.flat_map(fn order ->
+      order.items
+      |> Enum.filter(fn i -> i.status == "Called" end)
+      |> Enum.map(fn i -> {order.table_order, i} end)
+    end) |>
+    Enum.group_by(fn {table, _} -> table end, fn {_, item} -> item end) |>
+    Enum.map(fn {table, items} ->
+      item_count = length(items)
+      total_amount = Enum.reduce(items, 0, fn item, acc -> acc + item.ordered_price end)
+
+      %{
+        table_order: table,
+        called_items: items,
+        item_count: item_count,
+        total_amount: total_amount
+      }
+    end)
+  end
+
+  def calculate_called_items([]), do: []
+
   defp get_last_action_datetime(orders) do
     datetimes = orders
       |> Enum.map(& &1.last_action_datetime)
