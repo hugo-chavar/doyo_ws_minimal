@@ -36,6 +36,15 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
+  # Get allowed origins from environment variable
+  allowed_origins = System.get_env("ALLOWED_WEBSOCKET_ORIGINS") || "http://localhost:62630"
+
+  # Split and trim the origins
+  allowed_origins_list =
+    allowed_origins
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+
   config :doyo_ws, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :redix, host: System.get_env("REDIS_HOST") || "localhost"
@@ -51,6 +60,7 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
+    check_origin: allowed_origins_list,
     secret_key_base: secret_key_base
 
   # ## SSL Support
