@@ -30,7 +30,7 @@ defmodule DoyoWsWeb.OrderChannel do
   @impl true
   def handle_info({:after_join, restaurant_id, order_id}, socket) do
     order = DoyoWs.OrderService.get_by_order_id(restaurant_id, order_id)
-    push(socket, "update", order)
+    if order, do: push(socket, "update", order)
     {:noreply, socket}
   end
 
